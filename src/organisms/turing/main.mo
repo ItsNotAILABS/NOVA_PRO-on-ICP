@@ -554,7 +554,7 @@ persistent actor TURING {
     id
   };
 
-  /// Execute the next command in the queue via the intake loop.
+  /// Execute the next command in the queue via the intake cyc.
   public func runNextCommand() : async ?Text {
     if (cmdQueue.size() == 0) { return null };
     let cmd = cmdQueue.remove(0);

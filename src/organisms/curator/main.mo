@@ -17,7 +17,7 @@ import Time "mo:base/Time";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 
-actor CURATOR {
+persistent actor CURATOR {
 
   // ══════════════════════════════════════════════════════════════════
   //  CPL RUNTIME WIRING — The Permanent Foundation
@@ -161,7 +161,7 @@ actor CURATOR {
 
   public type GraphNode = {
     id              : Nat;
-    label           : Text;
+    grp           : Text;
     nodeType        : Text;
     weight          : Float;  // φ-weighted importance
     dimension       : Nat;    // D0-D4
@@ -176,7 +176,7 @@ actor CURATOR {
 
   public type Cluster = {
     id              : Nat;
-    label           : Text;
+    grp           : Text;
     members         : [Nat];
     coherence       : Float;
   };
@@ -585,18 +585,18 @@ actor CURATOR {
   };
 
   func find_shared_keywords(kw1 : [Text], kw2 : [Text]) : [Text] {
-    let shared = Buffer.Buffer<Text>(FIB_8);
+    let sharedKeywords = Buffer.Buffer<Text>(FIB_8);
     for (k1 in kw1.vals()) {
       for (k2 in kw2.vals()) {
         if (k1 == k2) {
-          shared.add(k1);
+          sharedKeywords.add(k1);
         };
       };
     };
-    Buffer.toArray(shared)
+    Buffer.toArray(sharedKeywords)
   };
 
-  func infer_correlation_type(doc1 : Document, doc2 : Document, shared : [Text]) : CorrelationType {
+  func infer_correlation_type(doc1 : Document, doc2 : Document, commonKeywords : [Text]) : CorrelationType {
     // Simple heuristic (in production: use NLP)
     let timeDiff = Int.abs(doc1.createdAt - doc2.createdAt);
 
@@ -624,8 +624,8 @@ actor CURATOR {
     null
   };
 
-  public query func search_documents(query : Text) : async [Document] {
-    let queryLower = Text.toLowercase(query);
+  public query func search_documents(searchText : Text) : async [Document] {
+    let queryLower = Text.toLowercase(searchText);
     let results = Buffer.Buffer<Document>(FIB_13);
 
     for (doc in documents.vals()) {
@@ -683,7 +683,7 @@ actor CURATOR {
       }
     );
 
-    let count = Int.min(limit, sorted.size());
+    let count : Nat = if (limit < sorted.size()) { limit } else { sorted.size() };
     let results = Buffer.Buffer<Document>(count);
     for (i in Iter.range(0, count - 1)) {
       results.add(sorted[i]);

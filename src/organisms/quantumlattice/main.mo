@@ -76,7 +76,7 @@ persistent actor QUANTUMLATTICE {
   };
 
   stable var channelCount : Nat = 0;
-  var channels = HashMap.HashMap<Text, QuantumChannel>(20, Text.equal, Text.hash);
+  transient var channels = HashMap.HashMap<Text, QuantumChannel>(20, Text.equal, Text.hash);
 
   /// Register quantum channel with coherence analysis
   public func registerQuantumChannel(

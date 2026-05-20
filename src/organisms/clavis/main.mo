@@ -288,10 +288,10 @@ persistent actor Clavis {
         // Find highest tier the coherenceR supports
         var earnedRank = 0;
         var rank       = 5;
-        label loop loop {
-          if (rank == 0) { break loop };
+        grp cyc cyc {
+          if (rank == 0) { break cyc };
           let thresh = _tierThreshold(rank);
-          if (coherenceR >= thresh) { earnedRank := rank; break loop };
+          if (coherenceR >= thresh) { earnedRank := rank; break cyc };
           rank -= 1;
         };
 

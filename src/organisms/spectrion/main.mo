@@ -49,7 +49,7 @@ persistent actor SPECTRION {
   };
 
   stable var bandCount : Nat = 0;
-  var bands = HashMap.HashMap<Text, FrequencyBand>(20, Text.equal, Text.hash);
+  transient var bands = HashMap.HashMap<Text, FrequencyBand>(20, Text.equal, Text.hash);
 
   /// Register frequency band
   public func registerBand(band: FrequencyBand) : async Text {

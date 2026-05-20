@@ -219,7 +219,7 @@ persistent actor NNSProxy {
 
   /// DisburseIntent — convert maturity to liquid ICP for the treasury.
   /// Applies to short-dissolve neurons (Tier 0-1) that are near dissolution;
-  /// harvesting liquid ICP feeds auto_market's injectMaturity() loop.
+  /// harvesting liquid ICP feeds auto_market's injectMaturity() cyc.
   public type DisburseIntent = {
     neuronId    : Nat;
     icpE8s      : Nat;    // ICP e8s to disburse
@@ -803,7 +803,7 @@ persistent actor NNSProxy {
 
   // ══════════════════════════════════════════════════════════════════
   //  HEARTBEAT — self-ticks every IC round on mainnet so maturity
-  //  accrues and the 3-way generator loop runs without any external
+  //  accrues and the 3-way generator cyc runs without any external
   //  caller after deployment.
   // ══════════════════════════════════════════════════════════════════
 

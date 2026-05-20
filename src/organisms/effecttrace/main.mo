@@ -145,7 +145,7 @@ persistent actor EffectTrace {
 
   public type SourceLink = {
     id          : Text;
-    linkLabel   : Text;        // named linkLabel because 'label' is a Motoko keyword
+    linkLabel   : Text;        // named linkLabel because 'grp' is a Motoko keyword
     url         : ?Text;
     evidenceType: EvidenceType;
     note        : ?Text;
@@ -219,7 +219,7 @@ persistent actor EffectTrace {
 
   public type VerificationStep = {
     id          : Text;
-    stepLabel   : Text;        // named stepLabel because 'label' is a Motoko keyword
+    stepLabel   : Text;        // named stepLabel because 'grp' is a Motoko keyword
     description : Text;
     evidenceType: EvidenceType;
     url         : ?Text;

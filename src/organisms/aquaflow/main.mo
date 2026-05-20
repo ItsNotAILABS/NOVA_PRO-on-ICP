@@ -181,7 +181,7 @@ persistent actor AQUAFLOW {
     rainfallMm: Float;
     durationHours: Float;
     peakDischarge: Float;      // m³/s
-    timeToP Float;      // hours
+    timeToPeak : Float;        // hours
     floodVolume: Float;        // m³
     recurrenceInterval: Float; // years
     pythagoreanRiskScore: Float;
@@ -208,9 +208,9 @@ persistent actor AQUAFLOW {
   stable var watershedCount : Nat = 0;
   stable var irrigationScheduleCount : Nat = 0;
 
-  var watersheds = HashMap.HashMap<Text, WatershedArea>(10, Text.equal, Text.hash);
-  var irrigationSchedules = HashMap.HashMap<Text, IrrigationSchedule>(10, Text.equal, Text.hash);
-  var waterQualityRecords = HashMap.HashMap<Text, WaterQuality>(10, Text.equal, Text.hash);
+  transient var watersheds = HashMap.HashMap<Text, WatershedArea>(10, Text.equal, Text.hash);
+  transient var irrigationSchedules = HashMap.HashMap<Text, IrrigationSchedule>(10, Text.equal, Text.hash);
+  transient var waterQualityRecords = HashMap.HashMap<Text, WaterQuality>(10, Text.equal, Text.hash);
 
   // ══════════════════════════════════════════════════════════════════
   //  CORE FUNCTIONS — Water Intelligence

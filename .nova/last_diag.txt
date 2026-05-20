@@ -1,3 +1,10 @@
+ERR porta:
+/home/runner/work/NOVA_PRO-on-ICP/NOVA_PRO-on-ICP/src/organisms/porta/main.mo:306.16-306.17: syntax error [M0001], unexpected token '=', expected one of token or <phrase> sequence:
+ERR clavis:
+/home/runner/work/NOVA_PRO-on-ICP/NOVA_PRO-on-ICP/src/organisms/clavis/main.mo:173.14-173.15: syntax error [M0001], unexpected token '=', expected one of token or <phrase> sequence:
+OK sentinella
+ERR geomancer:
+/home/runner/work/NOVA_PRO-on-ICP/NOVA_PRO-on-ICP/src/organisms/geomancer/main.mo:334.16-334.17: syntax error [M0001], unexpected token '=', expected one of token or <phrase> sequence:
 OK agi_main
 OK cordex
 OK cerebex
@@ -45,13 +52,24 @@ OK nitrogen
 OK oxygen
 OK hydrogen
 OK helium
-SUMMARY: 47/47 passed
 OK slack_app
 OK oracle
 OK guardian
 OK cpl_runtime
 OK terminal_hub
 OK language_registry
-SUMMARY: 40/40 passed
 OK cloud_engine
-SUMMARY: 35/35 passed
+OK agronomist
+OK netmind
+OK aquaflow
+OK biosentry
+OK cultivar
+OK curator
+OK meshweaver
+OK phenologix
+OK quantumlattice
+OK resiliex
+OK signalforge
+OK spectrion
+OK terragenesis
+SUMMARY: 68/71 passed | FAILED: porta clavis geomancer

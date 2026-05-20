@@ -1,0 +1,158 @@
+##
+## NOVA SNS Initialization Parameters
+##
+## This file configures the Service Nervous System (SNS) swap for the
+## NOVA token — the sovereign governance and utility token of the
+## Native Nova Protocol.
+##
+## NOVA token economics are φ-grounded:
+##   Total supply = φ^13 × 10^8 e8s ≈ 521,001,966 NOVA (8 decimals)
+##   Swap rate    = 1 ICP → PHI × 1000 NOVA e8s = 1618 NOVA e8s/ICP-e8
+##
+## References:
+##   ICRC-1 spec:   https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1
+##   ICRC-2 spec:   https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2
+##   SNS docs:      https://internetcomputer.org/docs/current/developer-docs/daos/sns
+##
+## Casa de Medina — Architectos de Architectura Inteligente
+##
+
+name: "Native Nova Protocol"
+
+description: >
+  The Native Nova Protocol is a sovereign AI-governed organism network
+  deployed on the Internet Computer. NOVA is its governance and utility
+  token, φ-grounded in the golden ratio, ICP-native, and ICRC-1/ICRC-2
+  compliant. The SNS DAO governs treasury, canister upgrades, economic
+  parameters, and community growth. Staked NOVA earns voting rewards
+  compounded through 200 NNS neurons at Fibonacci dissolve tiers.
+
+url: "https://nova-protocol.io"
+
+# ── Token Metadata ──────────────────────────────────────────────────────────
+
+token_name: "NOVA"
+token_symbol: "NOVA"
+token_logo: "https://nova-protocol.io/logo.svg"
+
+# Transfer fee: 0.0001 NOVA (10_000 e8s) — burned on each transfer (deflationary)
+transaction_fee_e8s: 10_000
+
+# ── Initial Token Distribution ───────────────────────────────────────────────
+#
+#  Total supply = φ^13 × 10^8 = 52_100_196_600 e8s ≈ 521.00 NOVA (whole)
+#
+#  Treasury (1/φ²)   38.2% — protocol reserve & cycle floor backing
+#  Community (1/φ³)  23.6% — SNS swap & governance incentives
+#  Founder   (1/φ²)  38.2% — vested over 8 Fibonacci dissolve periods
+#
+#  Note: percentages are approximate; exact e8s totals are authoritative.
+
+initial_token_distribution:
+  swap_distribution:
+    total_e8s: 12_297_756_900   # 23.6% community share offered in swap
+    initial_swap_amount_e8s: 6_148_878_450  # 50% of community share in genesis swap
+
+  developer_distribution:
+    developer_neurons:
+      - controller: "FOUNDER_PRINCIPAL_PLACEHOLDER"
+        stake_e8s: 19_884_154_200   # 38.2% founder allocation
+        memo: 0
+        dissolve_delay_seconds: 15_778_800  # 6 months minimum (Tier 0)
+        vesting_period_seconds: 252_460_800  # 8 years Fibonacci vest
+
+  treasury_distribution:
+    total_e8s: 19_918_285_500   # 38.2% treasury reserve
+
+# ── SNS Governance Parameters ────────────────────────────────────────────────
+
+neuron_minimum_stake_e8s: 100_000         # 0.001 NOVA minimum stake
+neuron_minimum_dissolve_delay_to_vote_seconds: 2_629_800  # 1 month
+
+max_dissolve_delay_seconds: 566_085_600   # φ^6 years ≈ 17.94 years (Tier 7)
+max_dissolve_delay_bonus_percentage: 100  # 2× voting power at max dissolve
+
+max_neuron_age_seconds_for_age_bonus: 157_680_000  # 5 years
+max_age_bonus_percentage: 25              # 1.25× bonus for aged neurons
+
+# Voting rewards: target 10% APY compounded through φ-staggered neurons
+initial_voting_reward_rate_basis_points: 1000   # 10% at launch
+final_voting_reward_rate_basis_points:   200    # 2% at equilibrium
+voting_reward_rate_transition_duration_seconds: 157_680_000  # 5 years
+
+# Proposal thresholds
+proposal_reject_cost_e8s: 100_000         # 0.001 NOVA to reject
+initial_reward_rate_basis_points: 1000
+
+# ── SNS Swap Parameters ───────────────────────────────────────────────────────
+#
+#  Swap rate: 1 ICP-e8 → 1618 NOVA-e8s  (PHI × 1000, φ-anchored)
+#
+#  Min ICP raised:  10_000 ICP-e8s (100 ICP)
+#  Max ICP raised: 500_000 ICP-e8s (5000 ICP) in genesis swap
+#  Neuron basket:  Each participant receives neurons across
+#                  Fibonacci dissolve tiers for natural distribution.
+
+min_participants: 50
+min_icp_e8s: 1_000_000_000     # 10 ICP minimum total
+max_icp_e8s: 50_000_000_000    # 500 ICP maximum total
+min_participant_icp_e8s: 100_000_000   # 1 ICP per participant minimum
+max_participant_icp_e8s: 5_000_000_000 # 50 ICP per participant maximum
+
+# Swap duration: 14 days (Fibonacci: 13+1 days)
+swap_start_timestamp_seconds: 0       # set at deploy time
+swap_due_timestamp_seconds: 1_209_600 # 14 days in seconds (relative to start)
+
+# Participant neurons: vested across Fibonacci dissolve tiers
+neuron_basket_construction_parameters:
+  count: 5                             # 5 neurons per participant
+  dissolve_delay_interval_seconds: 7_776_000  # 90-day intervals
+
+# ── NNS Coverage: 200-Neuron Fleet ──────────────────────────────────────────
+#
+#  The nns_proxy canister manages 200 live NNS neurons across 8
+#  Fibonacci dissolve tiers for maximum long-term voting rewards.
+#
+#  This is declared here for transparency and auditability.
+#  See src/organisms/nns_proxy/main.mo for full implementation.
+#
+#  Tier   Dissolve Delay     Neurons   Approx APY Bonus
+#  0      6 months (0.5y)    25        +1.0×
+#  1      1 year             25        +1.5×
+#  2      φ years  (1.618y)  25        +1.8×
+#  3      φ² years (2.618y)  25        +2.0×
+#  4      φ³ years (4.236y)  25        +2.5×
+#  5      φ⁴ years (6.854y)  25        +3.0×
+#  6      φ⁵ years (11.09y)  25        +4.0×
+#  7      φ⁶ years (17.94y)  25        +5.0×
+#                            ──────
+#  Total                     200 neurons
+#
+#  Auto-spawn threshold: ≥ 1 ICP maturity per neuron
+#  Spawned neurons: re-staked at Tier 0 for perpetual compounding
+#  Follow strategy: DFINITY Known Neurons on infrastructure topics;
+#                   self-follow on application topics (sovereign voice)
+
+# ── Canister IDs (set after SNS deploy) ───────────────────────────────────
+
+# sns_governance: ""
+# sns_ledger:     ""       # will host NOVA ICRC-1 ledger
+# sns_root:       ""
+# sns_swap:       ""
+# sns_index:      ""
+
+# ── Protocol Canister Registry (set at deploy) ────────────────────────────
+#
+#  All canisters are sovereign and self-healing.  The SNS governs
+#  their upgrade cycle via #UpgradeCanister proposals.
+#
+#  Key canisters:
+#    nova_token     — ICRC-1/ICRC-2 sovereign NOVA ledger
+#    sns_dao        — on-chain SNS governance organism
+#    nns_proxy      — 200-neuron NNS fleet manager
+#    cycles_market  — Native Nova Cycles (NNC) marketplace
+#    auto_market    — autonomous four-engine cycle mint
+#    parallax       — encrypted multi-asset wallet
+#    divi           — AI sovereign economic orchestrator
+#    revenue_engine — φ-weighted revenue routing
+#    brain          — central cognitive organism

@@ -65,7 +65,7 @@ persistent actor SIGNALFORGE {
   };
 
   stable var signalCount : Nat = 0;
-  var signals = HashMap.HashMap<Text, SignalProfile>(20, Text.equal, Text.hash);
+  transient var signals = HashMap.HashMap<Text, SignalProfile>(20, Text.equal, Text.hash);
 
   /// Analyze signal and create profile
   public func analyzeSignal(

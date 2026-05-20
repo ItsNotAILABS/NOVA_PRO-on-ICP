@@ -76,8 +76,8 @@ persistent actor RESILIEX {
   };
 
   stable var componentCount : Nat = 0;
-  var components = HashMap.HashMap<Text, ComponentReliability>(30, Text.equal, Text.hash);
-  var faultHistory = HashMap.HashMap<Text, [FaultEvent]>(10, Text.equal, Text.hash);
+  transient var components = HashMap.HashMap<Text, ComponentReliability>(30, Text.equal, Text.hash);
+  transient var faultHistory = HashMap.HashMap<Text, [FaultEvent]>(10, Text.equal, Text.hash);
 
   /// Calculate component reliability using exponential model
   /// R(t) = e^(-λt) where λ = 1/MTBF
