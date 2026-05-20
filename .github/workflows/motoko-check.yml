@@ -1,0 +1,44 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  NOVA SOVEREIGN BUILD CHECK                                               ║
+# ║  © 2024-2026 Alfredo Medina Hernandez — NSCP-2025                         ║
+# ║                                                                           ║
+# ║  Uses the NOVA sovereign CLI (scripts/nova) — NO DFX REQUIRED.           ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+name: NOVA Sovereign Build Check
+
+on:
+  push:
+    paths:
+      - '**/*.mo'
+      - 'scripts/nova'
+      - 'nova.json'
+      - '.github/workflows/motoko-check.yml'
+  pull_request:
+    paths:
+      - '**/*.mo'
+      - 'scripts/nova'
+      - 'nova.json'
+      - '.github/workflows/motoko-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  motoko-check:
+    name: Sovereign Motoko Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Motoko compiler (moc)
+        run: |
+          set -euo pipefail
+          MOC_VERSION=0.14.9
+          curl -fsSL "https://github.com/dfinity/motoko/releases/download/${MOC_VERSION}/moc-${MOC_VERSION}-x86_64-linux.tar.gz" -o /tmp/moc.tgz
+          tar -xzf /tmp/moc.tgz -C /tmp
+          sudo install -m 0755 /tmp/moc /usr/local/bin/moc
+          moc --version
+
+      - name: Run sovereign check
+        run: ./scripts/nova check
