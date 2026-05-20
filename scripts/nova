@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST_PATH="${NOVA_MANIFEST:-$ROOT_DIR/nova.json}"
+BUILD_DIR="$ROOT_DIR/.nova/build"
+
+usage() {
+  cat <<USAGE
+NOVA sovereign build CLI (no DFX)
+
+Usage:
+  ./scripts/nova check
+  ./scripts/nova build
+  ./scripts/nova list
+USAGE
+}
+
+if [[ ! -f "$MANIFEST_PATH" ]]; then
+  echo "error: manifest not found: $MANIFEST_PATH" >&2
+  exit 1
+fi
+
+MOC_BIN="${MOC:-$(command -v moc || true)}"
+
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 1
+fi
+
+load_canisters() {
+  python3 - "$MANIFEST_PATH" <<'PY'
+import json
+import sys
+
+manifest_path = sys.argv[1]
+with open(manifest_path, "r", encoding="utf-8") as f:
+    config = json.load(f)
+
+canisters = config.get("canisters", {})
+if not isinstance(canisters, dict):
+    raise SystemExit("error: 'canisters' must be an object")
+
+for name, spec in canisters.items():
+    if not isinstance(spec, dict):
+        raise SystemExit(f"error: canister '{name}' must be an object")
+    main = spec.get("main")
+    if not main:
+        raise SystemExit(f"error: canister '{name}' is missing 'main'")
+    print(f"{name}\t{main}")
+PY
+}
+
+require_moc() {
+  if [[ -z "$MOC_BIN" ]]; then
+    echo "error: moc was not found on PATH. Install Motoko compiler or set MOC=/path/to/moc." >&2
+    exit 1
+  fi
+}
+
+run_check() {
+  local entries
+  entries="$(load_canisters)"
+
+  if [[ -z "$entries" ]]; then
+    echo "No canisters configured in $(basename "$MANIFEST_PATH"); nothing to check."
+    return
+  fi
+  require_moc
+
+  while IFS=$'\t' read -r name main; do
+    local source_path="$ROOT_DIR/$main"
+    if [[ ! -f "$source_path" ]]; then
+      echo "error: canister '$name' source not found: $main" >&2
+      exit 1
+    fi
+    echo "Checking $name ($main)"
+    "$MOC_BIN" --check "$source_path"
+  done <<< "$entries"
+}
+
+run_build() {
+  local entries
+  entries="$(load_canisters)"
+
+  if [[ -z "$entries" ]]; then
+    echo "No canisters configured in $(basename "$MANIFEST_PATH"); nothing to build."
+    return
+  fi
+  require_moc
+
+  mkdir -p "$BUILD_DIR"
+  while IFS=$'\t' read -r name main; do
+    local source_path="$ROOT_DIR/$main"
+    local output_path="$BUILD_DIR/$name.wasm"
+    if [[ ! -f "$source_path" ]]; then
+      echo "error: canister '$name' source not found: $main" >&2
+      exit 1
+    fi
+    echo "Building $name -> .nova/build/$name.wasm"
+    "$MOC_BIN" "$source_path" -o "$output_path"
+  done <<< "$entries"
+}
+
+run_list() {
+  local entries
+  entries="$(load_canisters)"
+  if [[ -z "$entries" ]]; then
+    echo "No canisters configured in $(basename "$MANIFEST_PATH")."
+    return
+  fi
+  while IFS=$'\t' read -r name main; do
+    echo "$name: $main"
+  done <<< "$entries"
+}
+
+case "$1" in
+  check)
+    run_check
+    ;;
+  build)
+    run_build
+    ;;
+  list)
+    run_list
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "error: unknown command: $1" >&2
+    usage
+    exit 1
+    ;;
+esac

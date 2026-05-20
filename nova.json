@@ -1,0 +1,40 @@
+{
+  "canisters": {
+    "chrysalis": {
+      "main": "src/organisms/chrysalis/main.mo",
+      "type": "motoko"
+    },
+    "scribe": {
+      "main": "src/organisms/scribe/main.mo",
+      "type": "motoko"
+    },
+    "architect": {
+      "main": "src/organisms/architect/main.mo",
+      "type": "motoko"
+    },
+    "nexus": {
+      "main": "src/organisms/nexus/main.mo",
+      "type": "motoko"
+    },
+    "sovereign": {
+      "main": "src/organisms/sovereign/main.mo",
+      "type": "motoko"
+    },
+    "observer": {
+      "main": "src/organisms/observer/main.mo",
+      "type": "motoko"
+    },
+    "terminal": {
+      "main": "src/organisms/terminal/main.mo",
+      "type": "motoko"
+    },
+    "custos": {
+      "main": "src/organisms/custos/main.mo",
+      "type": "motoko"
+    },
+    "praesidium": {
+      "main": "src/organisms/praesidium/main.mo",
+      "type": "motoko"
+    }
+  }
+}
