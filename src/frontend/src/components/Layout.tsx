@@ -6,6 +6,7 @@ const navItems = [
   { to: '/agents', label: 'Agents' },
   { to: '/renderability', label: 'Renderability' },
   { to: '/token-economy', label: 'Token Economy' },
+  { to: '/icp-coverage', label: 'ICP Coverage' },
   { to: '/reality-release', label: 'Reality → Release' },
   { to: '/executive', label: 'Executive' },
   { to: '/et', label: 'EffectTrace' },
