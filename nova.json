@@ -291,6 +291,10 @@
     "type_bridge": {
       "main": "src/organisms/type_bridge/main.mo",
       "type": "motoko"
+    },
+    "ssn_token": {
+      "main": "src/organisms/ssn_token/main.mo",
+      "type": "motoko"
     }
   }
 }

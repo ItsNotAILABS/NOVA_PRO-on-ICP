@@ -71,4 +71,5 @@ OK spectrion
 OK terragenesis
 OK icp_coverage
 OK type_bridge
-SUMMARY: 73/73 passed
+OK ssn_token
+SUMMARY: 74/74 passed
