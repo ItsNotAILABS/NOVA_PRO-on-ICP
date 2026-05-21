@@ -365,6 +365,7 @@ persistent actor SnsDao {
       ("phenologix",     "PHENOLOGIX"),
       ("spectrion",      "SPECTRION"),
       ("terragenesis",   "TERRAGENESIS"),
+      ("icp_coverage",   "ICP_COVERAGE"),
     ];
 
     for ((principal, grp) in organisms.vals()) {

@@ -283,6 +283,10 @@
     "terragenesis": {
       "main": "src/organisms/terragenesis/main.mo",
       "type": "motoko"
+    },
+    "icp_coverage": {
+      "main": "src/organisms/icp_coverage/main.mo",
+      "type": "motoko"
     }
   }
 }

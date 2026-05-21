@@ -69,4 +69,5 @@ OK resiliex
 OK signalforge
 OK spectrion
 OK terragenesis
-SUMMARY: 71/71 passed
+OK icp_coverage
+SUMMARY: 72/72 passed
