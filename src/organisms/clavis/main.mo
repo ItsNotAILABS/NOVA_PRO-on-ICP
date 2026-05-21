@@ -170,7 +170,7 @@ persistent actor Clavis {
       let c  = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw = Float.exp(Float.fromInt(i % PHI_HASH_CYCLE) * Float.log(PHI));
       h     += c * pw;
-      h      = Float.rem(h, mask);
+      h     := Float.rem(h, mask);
       i     += 1;
     };
     h
@@ -216,7 +216,7 @@ persistent actor Clavis {
       let code = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw   = Float.exp(Float.fromInt(i % PHI_HASH_CYCLE) * Float.log(PHI));
       hash    += code * pw;
-      hash     = Float.rem(hash, mask);
+      hash    := Float.rem(hash, mask);
       i       += 1;
     };
     let scaled = Int.abs(Float.toInt(hash * PHI2)) % 16_777_216;
@@ -288,7 +288,7 @@ persistent actor Clavis {
         // Find highest tier the coherenceR supports
         var earnedRank = 0;
         var rank       = 5;
-        grp cyc cyc {
+        label cyc loop {
           if (rank == 0) { break cyc };
           let thresh = _tierThreshold(rank);
           if (coherenceR >= thresh) { earnedRank := rank; break cyc };
@@ -410,7 +410,7 @@ persistent actor Clavis {
     switch (solids.get(callerId)) {
       case null null;
       case (?s) {
-        let tierText = switch s.tier {
+        let tierText = switch (s.tier) {
           case (#READ)      "READ";      case (#CALL)      "CALL";
           case (#BUILD)     "BUILD";     case (#FEDERATE)  "FEDERATE";
           case (#SOVEREIGN) "SOVEREIGN"; case (#ARCHITECT) "ARCHITECT";

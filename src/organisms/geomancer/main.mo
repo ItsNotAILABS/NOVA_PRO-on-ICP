@@ -331,7 +331,7 @@ persistent actor Geomancer {
       let code = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw   = Float.exp(Float.fromInt(i % PHI_HASH_CYCLE) * Float.log(PHI));
       hash    += code * pw;
-      hash     = Float.rem(hash, mask32);
+      hash    := Float.rem(hash, mask32);
       i       += 1;
     };
 
@@ -768,7 +768,7 @@ persistent actor Geomancer {
       let code = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw   = Float.exp(Float.fromInt(i % KEY_DIMENSIONS) * Float.log(PHI));
       seed    += code * pw;
-      seed     = Float.rem(seed, mask);
+      seed    := Float.rem(seed, mask);
       i       += 1;
     };
     seed

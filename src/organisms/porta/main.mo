@@ -303,7 +303,7 @@ persistent actor Porta {
       let code = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw   = Float.exp(Float.fromInt(i % PHI_HASH_CYCLE) * Float.log(PHI));
       seed    += code * pw;
-      seed     = Float.rem(seed, mask);
+      seed    := Float.rem(seed, mask);
       i       += 1;
     };
     seed
@@ -325,7 +325,7 @@ persistent actor Porta {
       let code = Float.fromInt(Nat32.toNat(Char.toNat32(ch)));
       let pw   = Float.exp(Float.fromInt(i % PHI_HASH_CYCLE) * Float.log(PHI));
       hash    += code * pw;
-      hash     = Float.rem(hash, mask);
+      hash    := Float.rem(hash, mask);
       i       += 1;
     };
     let scaled  = Int.abs(Float.toInt(hash * PHI2)) % 16_777_216;
