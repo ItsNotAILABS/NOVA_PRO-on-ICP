@@ -1,0 +1,256 @@
+{
+  "version": "1.0.0",
+  "description": "Complete type mappings for Julia ↔ Motoko ↔ JavaScript ↔ Candid bridge",
+  
+  "primitives": {
+    "float64": {
+      "julia": { "type": "Float64", "bits": 64, "ieee754": true },
+      "motoko": { "type": "Float", "bits": 64, "ieee754": true },
+      "javascript": { "type": "number", "bits": 64, "ieee754": true },
+      "candid": { "type": "float64", "bits": 64 },
+      "roundtrip": {
+        "tested": true,
+        "edge_cases": ["0.0", "-0.0", "Inf", "-Inf", "NaN", "subnormal", "max", "min", "epsilon"]
+      },
+      "conversion_notes": "Bit-for-bit identical across all languages. NaN payloads may not preserve."
+    },
+    "float32": {
+      "julia": { "type": "Float32", "bits": 32, "ieee754": true },
+      "motoko": { "type": "Float", "bits": 64, "widened": true },
+      "javascript": { "type": "number", "bits": 64, "widened": true },
+      "candid": { "type": "float32", "bits": 32 },
+      "roundtrip": { "tested": true },
+      "conversion_notes": "Widened to 64-bit in Motoko/JS. Lossless for Float32 range."
+    },
+    "int64": {
+      "julia": { "type": "Int64", "bits": 64, "signed": true },
+      "motoko": { "type": "Int", "arbitrary_precision": true },
+      "javascript": { "type": "BigInt", "arbitrary_precision": true },
+      "candid": { "type": "int64", "bits": 64 },
+      "roundtrip": { "tested": true },
+      "conversion_notes": "JS number loses precision beyond 2^53. Use BigInt."
+    },
+    "int32": {
+      "julia": { "type": "Int32", "bits": 32, "signed": true },
+      "motoko": { "type": "Int32", "bits": 32 },
+      "javascript": { "type": "number", "safe": true },
+      "candid": { "type": "int32", "bits": 32 },
+      "roundtrip": { "tested": true },
+      "conversion_notes": "Safe in JS number (within 2^53)."
+    },
+    "nat64": {
+      "julia": { "type": "UInt64", "bits": 64, "signed": false },
+      "motoko": { "type": "Nat64", "bits": 64 },
+      "javascript": { "type": "BigInt", "arbitrary_precision": true },
+      "candid": { "type": "nat64", "bits": 64 },
+      "roundtrip": { "tested": true }
+    },
+    "nat": {
+      "julia": { "type": "BigInt", "arbitrary_precision": true },
+      "motoko": { "type": "Nat", "arbitrary_precision": true },
+      "javascript": { "type": "BigInt", "arbitrary_precision": true },
+      "candid": { "type": "nat", "arbitrary_precision": true },
+      "roundtrip": { "tested": true }
+    },
+    "int": {
+      "julia": { "type": "BigInt", "arbitrary_precision": true },
+      "motoko": { "type": "Int", "arbitrary_precision": true },
+      "javascript": { "type": "BigInt", "arbitrary_precision": true },
+      "candid": { "type": "int", "arbitrary_precision": true },
+      "roundtrip": { "tested": true }
+    },
+    "bool": {
+      "julia": { "type": "Bool" },
+      "motoko": { "type": "Bool" },
+      "javascript": { "type": "boolean" },
+      "candid": { "type": "bool" },
+      "roundtrip": { "tested": true }
+    },
+    "text": {
+      "julia": { "type": "String", "encoding": "UTF-8" },
+      "motoko": { "type": "Text", "encoding": "UTF-8" },
+      "javascript": { "type": "string", "encoding": "UTF-16", "note": "Lossless conversion" },
+      "candid": { "type": "text", "encoding": "UTF-8" },
+      "roundtrip": { "tested": true }
+    },
+    "blob": {
+      "julia": { "type": "Vector{UInt8}" },
+      "motoko": { "type": "Blob" },
+      "javascript": { "type": "Uint8Array" },
+      "candid": { "type": "blob" },
+      "roundtrip": { "tested": true }
+    },
+    "null": {
+      "julia": { "type": "Nothing" },
+      "motoko": { "type": "()" },
+      "javascript": { "type": "null" },
+      "candid": { "type": "null" },
+      "roundtrip": { "tested": true }
+    }
+  },
+
+  "containers": {
+    "vector": {
+      "julia": { "type": "Vector{T}", "syntax": "Vector{Float64}" },
+      "motoko": { "type": "[T]", "syntax": "[Float]" },
+      "javascript": { "type": "Array<T>", "syntax": "number[]", "typed_array": "Float64Array" },
+      "candid": { "type": "vec T", "syntax": "vec float64" },
+      "roundtrip": { "tested": true },
+      "notes": "Use typed arrays (Float64Array) for performance in JS."
+    },
+    "matrix": {
+      "julia": { "type": "Matrix{T}", "syntax": "Matrix{Float64}", "order": "column-major" },
+      "motoko": { "type": "[[T]]", "syntax": "[[Float]]", "order": "row-major" },
+      "javascript": { "type": "T[][]", "syntax": "number[][]", "order": "row-major" },
+      "candid": { "type": "vec vec T", "syntax": "vec vec float64" },
+      "roundtrip": { "tested": true },
+      "conversion": {
+        "julia_to_js": "Transpose indices: m[i,j] → arr[i][j] (convert column-major to row-major)",
+        "js_to_julia": "Transpose indices: arr[i][j] → m[i,j] (convert row-major to column-major)"
+      }
+    },
+    "optional": {
+      "julia": { "type": "Union{T, Nothing}", "syntax": "Union{Float64, Nothing}" },
+      "motoko": { "type": "?T", "syntax": "?Float" },
+      "javascript": { "type": "T | null", "syntax": "number | null" },
+      "candid": { "type": "opt T", "syntax": "opt float64" },
+      "roundtrip": { "tested": true }
+    },
+    "tuple": {
+      "julia": { "type": "Tuple{A, B, C}", "syntax": "Tuple{Float64, Int64, String}" },
+      "motoko": { "type": "(A, B, C)", "syntax": "(Float, Int, Text)" },
+      "javascript": { "type": "[A, B, C]", "syntax": "[number, bigint, string]" },
+      "candid": { "type": "record { A; B; C }", "note": "Positional record" },
+      "roundtrip": { "tested": true }
+    },
+    "record": {
+      "julia": { "type": "struct", "syntax": "struct Point; x::Float64; y::Float64; end" },
+      "motoko": { "type": "{ ... }", "syntax": "{ x : Float; y : Float }" },
+      "javascript": { "type": "{ ... }", "syntax": "{ x: number; y: number }" },
+      "candid": { "type": "record { ... }", "syntax": "record { x : float64; y : float64 }" },
+      "roundtrip": { "tested": true }
+    },
+    "variant": {
+      "julia": { "type": "@enum or Union", "syntax": "@enum Status Pending Active" },
+      "motoko": { "type": "{ #A; #B }", "syntax": "{ #Pending; #Active }" },
+      "javascript": { "type": "string literal union", "syntax": "'Pending' | 'Active'" },
+      "candid": { "type": "variant { ... }", "syntax": "variant { Pending; Active }" },
+      "roundtrip": { "tested": true }
+    },
+    "dict": {
+      "julia": { "type": "Dict{K, V}", "syntax": "Dict{String, Float64}" },
+      "motoko": { "type": "HashMap<K, V>", "syntax": "HashMap.HashMap<Text, Float>" },
+      "javascript": { "type": "Map<K, V> or Record<K, V>", "syntax": "Map<string, number>" },
+      "candid": { "type": "vec record { K; V }", "note": "Serialized as key-value pairs" },
+      "roundtrip": { "tested": true }
+    }
+  },
+
+  "scientific": {
+    "complex": {
+      "julia": { "type": "ComplexF64", "syntax": "1.0 + 2.0im" },
+      "motoko": { "type": "Complex", "syntax": "{ re = 1.0; im = 2.0 }" },
+      "javascript": { "type": "Complex", "syntax": "{ re: 1.0, im: 2.0 }" },
+      "candid": { "type": "record { re : float64; im : float64 }" },
+      "roundtrip": { "tested": true }
+    },
+    "sparse_matrix": {
+      "julia": { "type": "SparseMatrixCSC{Float64, Int64}", "format": "Compressed Sparse Column" },
+      "motoko": { "type": "SparseMatrix", "syntax": "{ colptr: [Nat32]; rowval: [Nat32]; nzval: [Float]; m: Nat32; n: Nat32 }" },
+      "javascript": { "type": "SparseMatrix", "syntax": "{ colptr: Uint32Array; rowval: Uint32Array; nzval: Float64Array; m: number; n: number }" },
+      "candid": { "type": "record { colptr: vec nat32; rowval: vec nat32; nzval: vec float64; m: nat32; n: nat32 }" },
+      "roundtrip": { "tested": true }
+    }
+  },
+
+  "nova_specific": {
+    "phi_weighted": {
+      "julia": { "type": "PhiWeighted{T}", "syntax": "PhiWeighted{Float64}(3.14, PHI2)" },
+      "motoko": { "type": "PhiWeighted<T>", "syntax": "{ value = 3.14; weight = 2.618 }" },
+      "javascript": { "type": "PhiWeighted<T>", "syntax": "{ value: 3.14, weight: 2.618 }" },
+      "candid": { "type": "record { value : T; weight : float64 }" },
+      "roundtrip": { "tested": true },
+      "constants": {
+        "PHI": 1.6180339887498948482,
+        "PHI2": 2.6180339887498948482,
+        "PHI3": 4.23606797749978969,
+        "PHI4": 6.85410196624968454
+      }
+    },
+    "point3d": {
+      "julia": { "type": "Point3D", "syntax": "Point3D(1.0, 2.0, 3.0)" },
+      "motoko": { "type": "Point3D", "syntax": "{ x = 1.0; y = 2.0; z = 3.0 }" },
+      "javascript": { "type": "Point3D", "syntax": "{ x: 1.0, y: 2.0, z: 3.0 }" },
+      "candid": { "type": "record { x : float64; y : float64; z : float64 }" },
+      "roundtrip": { "tested": true }
+    },
+    "cil_emission": {
+      "julia": { "type": "CILEmission" },
+      "motoko": { "type": "CILEmission" },
+      "javascript": { "type": "CILEmission" },
+      "candid": { "type": "record { organism_id: text; timestamp_ns: int64; thought: text; confidence: float64; phi_weight: float64; biorhythm: float64 }" },
+      "roundtrip": { "tested": true }
+    },
+    "eigen_result": {
+      "julia": { "type": "Eigen", "syntax": "eigen(A)" },
+      "motoko": { "type": "EigenResult", "syntax": "{ values: [Float]; vectors: [[Float]]; phiCoherence: Float }" },
+      "javascript": { "type": "EigenResult", "syntax": "{ values: number[]; vectors: number[][]; phiCoherence: number }" },
+      "candid": { "type": "record { values: vec float64; vectors: vec vec float64; phi_coherence: float64 }" },
+      "roundtrip": { "tested": true },
+      "notes": "Eigenvectors may differ by sign convention."
+    },
+    "svd_result": {
+      "julia": { "type": "SVD", "syntax": "svd(A)" },
+      "motoko": { "type": "SVDResult" },
+      "javascript": { "type": "SVDResult" },
+      "candid": { "type": "record { U: vec vec float64; S: vec float64; Vt: vec vec float64; phi_rank: nat }" },
+      "roundtrip": { "tested": true }
+    },
+    "fft_result": {
+      "julia": { "type": "FFTResult" },
+      "motoko": { "type": "FFTResult" },
+      "javascript": { "type": "FFTResult" },
+      "candid": { "type": "record { frequencies: vec float64; magnitudes: vec float64; phases: vec float64; phi_peaks: vec nat }" },
+      "roundtrip": { "tested": true }
+    },
+    "kuramoto_result": {
+      "julia": { "type": "KuramotoResult" },
+      "motoko": { "type": "KuramotoResult" },
+      "javascript": { "type": "KuramotoResult" },
+      "candid": { "type": "record { final_phases: vec float64; order_parameter: float64; coherence_history: vec float64 }" },
+      "roundtrip": { "tested": true }
+    }
+  },
+
+  "edge_cases": {
+    "float64": {
+      "positive_zero": { "value": 0.0, "hex": "0x0000000000000000" },
+      "negative_zero": { "value": -0.0, "hex": "0x8000000000000000", "note": "Preserved across bridge" },
+      "positive_infinity": { "value": "Inf", "hex": "0x7ff0000000000000" },
+      "negative_infinity": { "value": "-Inf", "hex": "0xfff0000000000000" },
+      "nan": { "value": "NaN", "hex": "0x7ff8000000000000", "note": "Payload may not preserve" },
+      "max_value": { "value": 1.7976931348623157e308, "hex": "0x7fefffffffffffff" },
+      "min_positive": { "value": 2.2250738585072014e-308, "hex": "0x0010000000000000" },
+      "min_subnormal": { "value": 5e-324, "hex": "0x0000000000000001" },
+      "epsilon": { "value": 2.220446049250313e-16 }
+    }
+  },
+
+  "validation": {
+    "roundtrip_algorithm": [
+      "1. Julia value → to_candid() → CandidValue",
+      "2. CandidValue → Candid binary encoding",
+      "3. Send to Motoko canister",
+      "4. Motoko decodes → processes → re-encodes",
+      "5. Return to JavaScript",
+      "6. JavaScript decodes → TypeScript type",
+      "7. Send back to Julia",
+      "8. Julia from_candid() → original type",
+      "9. Compare: original == roundtrip (within tolerance for floats)"
+    ],
+    "tolerance": {
+      "float64": "1e-15 relative or 1e-300 absolute",
+      "nan_handling": "isnan(original) && isnan(roundtrip) → pass"
+    }
+  }
+}

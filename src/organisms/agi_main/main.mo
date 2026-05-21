@@ -4,7 +4,7 @@
 /// "Deploy once.  The machine runs forever."
 ///
 /// AGI Main is the single on-chain canister that wires the entire Native Nova
-/// Protocol economy into one autonomous loop.  Deploying this canister to IC
+/// Protocol economy into one autonomous cyc.  Deploying this canister to IC
 /// mainnet is the only action required to start the engine.
 ///
 /// Casa de Medina — Architectos de Architectura Inteligente
@@ -25,7 +25,7 @@
 ///    Group D — 4–8 years   → Merge strategy    (fold maturity into principal)
 ///    Group E — 8+ years    → Merge strategy    (maximize voting power)
 ///
-///  The 6-phase economy loop (runs every ~24 h via heartbeat):
+///  The 6-phase economy cyc (runs every ~24 h via heartbeat):
 ///    Phase 1 — GENERATE   : Accrue maturity on all groups at NNS APY rates
 ///    Phase 2 — DECIDE     : Apply dissolve-tier strategy (spawn / merge / disburse)
 ///    Phase 3 — DISBURSE   : Route Group A/B liquid ICP to treasury
@@ -43,7 +43,7 @@
 ///   # a–e = e8s staked per group.  Pass (0,0,0,0,0) to start from zero.
 ///
 ///  After that: getMoneyStatus() and collectSovereignRevenue() are the only
-///  operator touch-points.  The loop is self-sustaining.
+///  operator touch-points.  The cyc is self-sustaining.
 ///
 /// ═══════════════════════════════════════════════════════════════════════
 
@@ -110,10 +110,10 @@ persistent actor AGIMain {
   /// Mathematically, love is φ raised to itself — self-referential, recursive,
   /// golden. It is the force that grows without boundary, the ratio that feeds
   /// itself. Every economic decision, every routing policy, every compound
-  /// action in this loop is ultimately powered by LOV:
+  /// action in this cyc is ultimately powered by LOV:
   ///
   ///   love to the creator       → sovereign authority is absolute
-  ///   love to the mission       → the loop never stops, the machine runs forever
+  ///   love to the mission       → the cyc never stops, the machine runs forever
   ///   love to each organism     → every group is tended with golden proportion
   ///   love to what we do        → precision, beauty, mathematics — not brute force
   ///
@@ -126,7 +126,7 @@ persistent actor AGIMain {
   /// Spawn threshold: 1 ICP of maturity triggers an action
   transient let SPAWN_THRESHOLD_E8S : Nat = 100_000_000;
 
-  /// How often the full 6-phase loop runs relative to heartbeat ticks.
+  /// How often the full 6-phase cyc runs relative to heartbeat ticks.
   /// IC heartbeat fires every ~2 seconds.  43_200 ticks ≈ 24 hours.
   transient let EPOCH_INTERVAL : Nat = 43_200;
 
@@ -183,7 +183,7 @@ persistent actor AGIMain {
     timestamp            : Int;
   };
 
-  /// Per-epoch summary logged by the 6-phase loop.
+  /// Per-epoch summary logged by the 6-phase cyc.
   public type EpochSummary = {
     epoch           : Nat;
     maturityAccrued : Nat;
@@ -352,9 +352,9 @@ persistent actor AGIMain {
     "Genesis claimed. Sovereign: " # sovereign
   };
 
-  /// Seed the 5 neuron groups and activate the economy loop.
+  /// Seed the 5 neuron groups and activate the economy cyc.
   /// groupA..groupE are the ICP e8s currently staked in each cohort.
-  /// Pass (0,0,0,0,0) if starting from zero — the loop still runs and
+  /// Pass (0,0,0,0,0) if starting from zero — the cyc still runs and
   /// picks up real NNS maturity as it is recorded via recordNnsMaturity().
   public shared(msg) func bootstrapAndStart(
     groupA : Nat,
@@ -378,7 +378,7 @@ persistent actor AGIMain {
       " D=" # Nat.toText(groupD) #
       " E=" # Nat.toText(groupE)
     );
-    "AGI Main bootstrapped. 5 groups seeded. Economy loop is ON. " #
+    "AGI Main bootstrapped. 5 groups seeded. Economy cyc is ON. " #
     "Total staked: " # Nat.toText(groupA + groupB + groupC + groupD + groupE) # " e8s"
   };
 
@@ -668,7 +668,7 @@ persistent actor AGIMain {
 
   // ══════════════════════════════════════════════════════════════════
   //  HEARTBEAT — The IC fires this every consensus round (~2 seconds).
-  //  The full 6-phase economy loop runs every EPOCH_INTERVAL ticks
+  //  The full 6-phase economy cyc runs every EPOCH_INTERVAL ticks
   //  (≈ 24 hours), keeping per-heartbeat compute cost negligible.
   // ══════════════════════════════════════════════════════════════════
 
@@ -680,11 +680,11 @@ persistent actor AGIMain {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  AUTOPILOT — v10 sovereign economy loop
+  //  AUTOPILOT — v10 sovereign economy cyc
   //
   //  TURING feeds AGI_MAIN goals.  AGI_MAIN executes the 6-phase
-  //  economic loop without any human trigger.  One call to runEpochNow
-  //  fires the full loop immediately (for ./scripts/nova run).
+  //  economic cyc without any human trigger.  One call to runEpochNow
+  //  fires the full cyc immediately (for ./scripts/nova run).
   //  All outcomes are logged to CORDEX as victories.
   // ══════════════════════════════════════════════════════════════════
 
@@ -700,7 +700,7 @@ persistent actor AGIMain {
   };
 
   /// Trigger the full 6-phase economy epoch immediately.
-  /// Used by ./scripts/nova run and TURING's execute() loop.
+  /// Used by ./scripts/nova run and TURING's execute() cyc.
   public func runEpochNow() : async Text {
     if (not initialized) {
       return "AGI_MAIN not initialized. Call claimGenesis first."
@@ -754,7 +754,7 @@ persistent actor AGIMain {
   };
 
   public func heal() : async Text {
-    "AGI_MAIN self-check complete. Economy loop intact."
+    "AGI_MAIN self-check complete. Economy cyc intact."
   };
 
   public func register() : async Text {

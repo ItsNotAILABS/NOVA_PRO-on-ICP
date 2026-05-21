@@ -208,9 +208,9 @@ persistent actor CULTIVAR {
   stable var cultivarCount : Nat = 0;
   stable var breedingProgramCount : Nat = 0;
 
-  var genotypes = HashMap.HashMap<Text, Genotype>(10, Text.equal, Text.hash);
-  var phenotypes = HashMap.HashMap<Text, Phenotype>(10, Text.equal, Text.hash);
-  var breedingPrograms = HashMap.HashMap<Text, BreedingProgram>(10, Text.equal, Text.hash);
+  transient var genotypes = HashMap.HashMap<Text, Genotype>(10, Text.equal, Text.hash);
+  transient var phenotypes = HashMap.HashMap<Text, Phenotype>(10, Text.equal, Text.hash);
+  transient var breedingPrograms = HashMap.HashMap<Text, BreedingProgram>(10, Text.equal, Text.hash);
 
   // ══════════════════════════════════════════════════════════════════
   //  CORE FUNCTIONS — Genetic Intelligence

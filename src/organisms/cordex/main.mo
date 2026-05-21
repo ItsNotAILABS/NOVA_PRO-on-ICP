@@ -56,7 +56,7 @@
 ///
 ///   dfx canister --network ic call cordex claimHeart
 ///   dfx canister --network ic call cordex setMission '("Govern the sovereign protocol economy forever.")'
-///   dfx canister --network ic call cordex attributeOrganism '("agi_main", "AGI Main", "The sovereign economy loop")'
+///   dfx canister --network ic call cordex attributeOrganism '("agi_main", "AGI Main", "The sovereign economy cyc")'
 ///
 /// ═══════════════════════════════════════════════════════════════════════
 

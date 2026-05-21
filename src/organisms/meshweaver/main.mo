@@ -53,7 +53,7 @@ persistent actor MESHWEAVER {
   };
 
   stable var nodeCount : Nat = 0;
-  var nodes = HashMap.HashMap<Text, NetworkNode>(50, Text.equal, Text.hash);
+  transient var nodes = HashMap.HashMap<Text, NetworkNode>(50, Text.equal, Text.hash);
 
   /// Register network node
   public func registerNode(node: NetworkNode) : async Text {

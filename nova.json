@@ -202,6 +202,8 @@
     },
     "helium": {
       "main": "src/organisms/helium/main.mo",
+      "type": "motoko"
+    },
     "slack_app": {
       "main": "src/organisms/slack_app/main.mo",
       "type": "motoko"
@@ -224,6 +226,8 @@
     },
     "language_registry": {
       "main": "src/organisms/language_registry/main.mo",
+      "type": "motoko"
+    },
     "cloud_engine": {
       "main": "src/organisms/cloud_engine/main.mo",
       "type": "motoko"
@@ -235,6 +239,80 @@
     "netmind": {
       "main": "src/organisms/netmind/main.mo",
       "type": "motoko"
+    },
+    "aquaflow": {
+      "main": "src/organisms/aquaflow/main.mo",
+      "type": "motoko"
+    },
+    "biosentry": {
+      "main": "src/organisms/biosentry/main.mo",
+      "type": "motoko"
+    },
+    "cultivar": {
+      "main": "src/organisms/cultivar/main.mo",
+      "type": "motoko"
+    },
+    "curator": {
+      "main": "src/organisms/curator/main.mo",
+      "type": "motoko"
+    },
+    "meshweaver": {
+      "main": "src/organisms/meshweaver/main.mo",
+      "type": "motoko"
+    },
+    "phenologix": {
+      "main": "src/organisms/phenologix/main.mo",
+      "type": "motoko"
+    },
+    "quantumlattice": {
+      "main": "src/organisms/quantumlattice/main.mo",
+      "type": "motoko"
+    },
+    "resiliex": {
+      "main": "src/organisms/resiliex/main.mo",
+      "type": "motoko"
+    },
+    "signalforge": {
+      "main": "src/organisms/signalforge/main.mo",
+      "type": "motoko"
+    },
+    "spectrion": {
+      "main": "src/organisms/spectrion/main.mo",
+      "type": "motoko"
+    },
+    "terragenesis": {
+      "main": "src/organisms/terragenesis/main.mo",
+      "type": "motoko"
+    },
+    "icp_coverage": {
+      "main": "src/organisms/icp_coverage/main.mo",
+      "type": "motoko"
+    },
+    "type_bridge": {
+      "main": "src/organisms/type_bridge/main.mo",
+      "type": "motoko"
+    },
+    "ssn_token": {
+      "main": "src/organisms/ssn_token/main.mo",
+      "type": "motoko"
+    },
+    "ssn_work": {
+      "main": "src/organisms/ssn_work/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_work/ssn_work.did",
+      "package": "ssn_work"
+    },
+    "ssn_trust": {
+      "main": "src/organisms/ssn_trust/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_trust/ssn_trust.did",
+      "package": "ssn_trust"
+    },
+    "ssn_gov": {
+      "main": "src/organisms/ssn_gov/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_gov/ssn_gov.did",
+      "package": "ssn_gov"
     }
   }
 }

@@ -22,7 +22,7 @@ import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 
-actor AGRONOMIST {
+persistent actor AGRONOMIST {
     
     // ═══════════════════════════════════════════════════════════════════
     // MATHEMATICAL CONSTANTS
@@ -42,13 +42,13 @@ actor AGRONOMIST {
     
     // Field registry
     private stable var fieldCount : Nat = 0;
-    private var fields = HashMap.HashMap<Text, Field>(10, Text.equal, Text.hash);
+    private transient var fields = HashMap.HashMap<Text, Field>(10, Text.equal, Text.hash);
     
     // Yield predictions
-    private var predictions = HashMap.HashMap<Text, YieldPrediction>(10, Text.equal, Text.hash);
+    private transient var predictions = HashMap.HashMap<Text, YieldPrediction>(10, Text.equal, Text.hash);
     
     // Soil health records
-    private var soilRecords = HashMap.HashMap<Text, SoilHealthRecord>(10, Text.equal, Text.hash);
+    private transient var soilRecords = HashMap.HashMap<Text, SoilHealthRecord>(10, Text.equal, Text.hash);
     
     // ═══════════════════════════════════════════════════════════════════
     // TYPES

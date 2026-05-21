@@ -189,8 +189,8 @@ persistent actor TERRAGENESIS {
   stable var soilProfileCount : Nat = 0;
   stable var terrainAnalysisCount : Nat = 0;
 
-  var soilProfiles = HashMap.HashMap<Text, SoilProfile>(10, Text.equal, Text.hash);
-  var terrainAnalyses = HashMap.HashMap<Text, TerrainAnalysis>(10, Text.equal, Text.hash);
+  transient var soilProfiles = HashMap.HashMap<Text, SoilProfile>(10, Text.equal, Text.hash);
+  transient var terrainAnalyses = HashMap.HashMap<Text, TerrainAnalysis>(10, Text.equal, Text.hash);
 
   // ══════════════════════════════════════════════════════════════════
   //  CORE FUNCTIONS — Earth Intelligence

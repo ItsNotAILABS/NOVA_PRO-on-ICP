@@ -99,6 +99,270 @@ persistent actor NNSProxy {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════════
+  //  ICP LEDGER INTEGRATION — Mainnet Canister Interfaces
+  //  Enables direct interaction with the ICP ledger for transfers,
+  //  balance queries, and neuron funding operations.
+  // ══════════════════════════════════════════════════════════════════
+
+  /// ICP Ledger canister ID (mainnet: ryjl3-tyaaa-aaaaa-aaaba-cai)
+  stable var icpLedgerCanisterId : ?Principal = null;
+
+  /// NNS Governance canister ID (mainnet: rrkah-fqaaa-aaaaa-aaaaq-cai)
+  stable var nnsGovernanceCanisterId : ?Principal = null;
+
+  public shared(msg) func setICPLedger(canisterId : Principal) : async () {
+    icpLedgerCanisterId := ?canisterId;
+    auditLog.add("ICP Ledger canister set: " # Principal.toText(canisterId));
+  };
+
+  public shared(msg) func setNNSGovernance(canisterId : Principal) : async () {
+    nnsGovernanceCanisterId := ?canisterId;
+    auditLog.add("NNS Governance canister set: " # Principal.toText(canisterId));
+  };
+
+  /// ICRC-1 Account type for ICP ledger
+  public type ICPAccount = {
+    owner      : Principal;
+    subaccount : ?[Nat8];
+  };
+
+  /// ICRC-1 Transfer args for ICP ledger
+  public type ICPTransferArgs = {
+    from_subaccount : ?[Nat8];
+    to              : ICPAccount;
+    amount          : Nat;
+    fee             : ?Nat;
+    memo            : ?[Nat8];
+    created_at_time : ?Nat64;
+  };
+
+  /// ICRC-1 Transfer result
+  public type ICPTransferResult = {
+    #Ok : Nat;
+    #Err : ICPTransferError;
+  };
+
+  public type ICPTransferError = {
+    #BadFee              : { expected_fee : Nat };
+    #BadBurn             : { min_burn_amount : Nat };
+    #InsufficientFunds   : { balance : Nat };
+    #TooOld;
+    #CreatedInFuture     : { ledger_time : Nat64 };
+    #Duplicate           : { duplicate_of : Nat };
+    #TemporarilyUnavailable;
+    #GenericError        : { error_code : Nat; message : Text };
+  };
+
+  /// ICP Ledger actor interface (ICRC-1 compatible)
+  type ICPLedger = actor {
+    icrc1_balance_of : (ICPAccount) -> async Nat;
+    icrc1_transfer   : (ICPTransferArgs) -> async ICPTransferResult;
+    icrc1_fee        : () -> async Nat;
+  };
+
+  /// NNS Governance actor interface (simplified)
+  type NNSGovernance = actor {
+    // Placeholder — real NNS governance has many more methods
+    // These are the key ones for neuron management
+  };
+
+  func getICPLedger() : ?ICPLedger {
+    switch (icpLedgerCanisterId) {
+      case null null;
+      case (?id) {
+        let ledger : ICPLedger = actor (Principal.toText(id));
+        ?ledger
+      };
+    }
+  };
+
+  /// Query ICP balance of a principal
+  public func getICPBalance(owner : Principal) : async Nat {
+    switch (getICPLedger()) {
+      case null { 0 };
+      case (?ledger) {
+        let account : ICPAccount = { owner; subaccount = null };
+        await ledger.icrc1_balance_of(account)
+      };
+    }
+  };
+
+  /// Get protocol's total ICP balance (this canister's balance on ICP ledger)
+  public func getProtocolICPBalance() : async Nat {
+    switch (getICPLedger()) {
+      case null { 0 };
+      case (?ledger) {
+        let account : ICPAccount = {
+          owner = Principal.fromActor(NNSProxy);
+          subaccount = null
+        };
+        await ledger.icrc1_balance_of(account)
+      };
+    }
+  };
+
+  /// Transfer ICP from this canister to another account
+  public shared(msg) func transferICP(to : Principal, amountE8s : Nat, memo : ?[Nat8]) : async ICPTransferResult {
+    switch (getICPLedger()) {
+      case null { #Err(#GenericError { error_code = 1; message = "ICP Ledger not configured" }) };
+      case (?ledger) {
+        let args : ICPTransferArgs = {
+          from_subaccount = null;
+          to = { owner = to; subaccount = null };
+          amount = amountE8s;
+          fee = null;  // use default 10_000 e8s
+          memo = memo;
+          created_at_time = null;
+        };
+        let result = await ledger.icrc1_transfer(args);
+        switch (result) {
+          case (#Ok(txId)) {
+            auditLog.add("ICP Transfer: " # Nat.toText(amountE8s) # " e8s to " # Principal.toText(to) # " (tx: " # Nat.toText(txId) # ")");
+          };
+          case (#Err(_)) {
+            auditLog.add("ICP Transfer FAILED: " # Nat.toText(amountE8s) # " e8s to " # Principal.toText(to));
+          };
+        };
+        result
+      };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  ICP COVERAGE METRICS — Protocol-wide ICP tracking
+  // ══════════════════════════════════════════════════════════════════
+
+  public type ICPCoverageReport = {
+    totalStakedInNeurons : Nat;      // ICP staked across all 200 neurons (e8s)
+    totalMaturityAccrued : Nat;      // Total maturity across all neurons (e8s)
+    protocolLiquidICP    : Nat;      // Liquid ICP held by this canister (e8s)
+    estimatedAnnualYield : Nat;      // Estimated annual voting rewards (e8s)
+    avgNeuronAPY_BPS     : Nat;      // Average APY in basis points
+    coverageRatio        : Float;    // Staked / (Staked + Liquid) — higher is better
+    phiWeightedVP        : Float;    // φ-weighted voting power
+    neuronCount          : Nat;      // Total active neurons
+    timestamp            : Int;
+  };
+
+  /// Get comprehensive ICP coverage report
+  public func getICPCoverageReport() : async ICPCoverageReport {
+    var totalStaked : Nat = 0;
+    var totalMaturity : Nat = 0;
+    var activeCount : Nat = 0;
+    var tierSum : Nat = 0;
+    var vpSum : Float = 0.0;
+
+    var i : Nat = 0;
+    while (i < neurons.size()) {
+      let n = neurons.get(i);
+      totalStaked += n.stakedE8s;
+      totalMaturity += n.maturityE8s;
+      if (n.status == #Active or n.status == #Locked) {
+        activeCount += 1;
+        tierSum += n.tier;
+        vpSum += n.votingPower;
+      };
+      i += 1;
+    };
+
+    let liquidICP = await getProtocolICPBalance();
+
+    // Average tier
+    let avgTier = if (activeCount > 0) {
+      Float.fromInt(tierSum) / Float.fromInt(activeCount)
+    } else { 0.0 };
+
+    // Estimate avg APY from tier (lookup TIER_APY_BPS)
+    let tierIdx = if (avgTier < 8.0) { Int.abs(Float.toInt(avgTier)) } else { 7 };
+    let avgAPY = TIER_APY_BPS[tierIdx];
+
+    // Estimated annual yield = totalStaked × APY / 10000
+    let annualYield = totalStaked * avgAPY / 10_000;
+
+    // Coverage ratio
+    let totalICP = totalStaked + liquidICP;
+    let coverage = if (totalICP > 0) {
+      Float.fromInt(totalStaked) / Float.fromInt(totalICP)
+    } else { 0.0 };
+
+    {
+      totalStakedInNeurons = totalStaked;
+      totalMaturityAccrued = totalMaturity;
+      protocolLiquidICP    = liquidICP;
+      estimatedAnnualYield = annualYield;
+      avgNeuronAPY_BPS     = avgAPY;
+      coverageRatio        = coverage;
+      phiWeightedVP        = vpSum;
+      neuronCount          = activeCount;
+      timestamp            = Time.now();
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  NEURON FUNDING — Stake new ICP into neurons
+  // ══════════════════════════════════════════════════════════════════
+
+  public type StakeIntentResult = {
+    #Ok : { neuronId : Nat; amountE8s : Nat; tier : Nat; memo : Text };
+    #Err : Text;
+  };
+
+  /// Queue an intent to stake additional ICP into an existing neuron
+  public shared(msg) func createStakeIntent(neuronId : Nat, amountE8s : Nat) : async StakeIntentResult {
+    if (neuronId >= neurons.size()) {
+      return #Err("Invalid neuron ID");
+    };
+    if (amountE8s < 100_000_000) {  // minimum 1 ICP
+      return #Err("Minimum stake is 1 ICP (100_000_000 e8s)");
+    };
+
+    let n = neurons.get(neuronId);
+    auditLog.add("StakeIntent: " # Nat.toText(amountE8s) # " e8s -> neuron " # Nat.toText(neuronId) # " (tier " # Nat.toText(n.tier) # ")");
+
+    #Ok({
+      neuronId  = neuronId;
+      amountE8s = amountE8s;
+      tier      = n.tier;
+      memo      = "Stake intent queued. Execute via NNS Governance after ICP transfer.";
+    })
+  };
+
+  /// Distribute new ICP across tiers using φ-weighted allocation
+  /// Returns a list of (neuronId, amountE8s) pairs for executing stakes
+  public func computePhiDistribution(totalE8s : Nat) : async [(Nat, Nat)] {
+    // φ-weights for 8 tiers: Tier 0 gets 1/φ^7, Tier 7 gets 1/φ^0 = 1
+    // Higher tiers (longer dissolve) get more allocation
+    var weights : [Float] = [];
+    var totalWeight : Float = 0.0;
+    var t : Nat = 0;
+    while (t < 8) {
+      let w = Float.pow(PHI, Float.fromInt(t));  // φ^tier
+      weights := Array.append(weights, [w]);
+      totalWeight += w * Float.fromInt(NEURONS_PER_TIER);
+      t += 1;
+    };
+
+    // Allocate per-neuron amounts
+    var result : [(Nat, Nat)] = [];
+    var allocated : Nat = 0;
+
+    var neuronIdx : Nat = 0;
+    while (neuronIdx < neurons.size() and allocated < totalE8s) {
+      let n = neurons.get(neuronIdx);
+      let tierWeight = weights[n.tier];
+      let share = Float.fromInt(totalE8s) * tierWeight / totalWeight;
+      let shareE8s = Int.abs(Float.toInt(share));
+
+      if (shareE8s > 0 and allocated + shareE8s <= totalE8s) {
+        result := Array.append(result, [(neuronIdx, shareE8s)]);
+        allocated += shareE8s;
+      };
+      neuronIdx += 1;
+    };
+
+    result
+  };
 
 
   // ══════════════════════════════════════════════════════════════════
@@ -219,7 +483,7 @@ persistent actor NNSProxy {
 
   /// DisburseIntent — convert maturity to liquid ICP for the treasury.
   /// Applies to short-dissolve neurons (Tier 0-1) that are near dissolution;
-  /// harvesting liquid ICP feeds auto_market's injectMaturity() loop.
+  /// harvesting liquid ICP feeds auto_market's injectMaturity() cyc.
   public type DisburseIntent = {
     neuronId    : Nat;
     icpE8s      : Nat;    // ICP e8s to disburse
@@ -803,7 +1067,7 @@ persistent actor NNSProxy {
 
   // ══════════════════════════════════════════════════════════════════
   //  HEARTBEAT — self-ticks every IC round on mainnet so maturity
-  //  accrues and the 3-way generator loop runs without any external
+  //  accrues and the 3-way generator cyc runs without any external
   //  caller after deployment.
   // ══════════════════════════════════════════════════════════════════
 

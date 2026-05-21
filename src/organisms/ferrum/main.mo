@@ -275,7 +275,7 @@ persistent actor Ferrum {
 
   // ── Helpers ────────────────────────────────────────────────────────
 
-  let PHI_INV : Float = 0.6180339887498948482;
+  transient let PHI_INV : Float = 0.6180339887498948482;
 
   func calculateStability(currentLoad : Float, capacity : Float) : Float {
     if (capacity == 0.0) { return 0.0 };

@@ -5,6 +5,10 @@ src/frontend/dist/
 # NOVA sovereign build cache
 .nova/build/
 .nova/moc/
+.nova/last_diag.txt
+
+# Rust build artifacts
+target/
 
 # Prototype — never commit deployment state or network configs
 canister_ids.json

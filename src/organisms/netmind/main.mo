@@ -23,7 +23,7 @@ import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 
-actor NETMIND {
+persistent actor NETMIND {
     
     // ═══════════════════════════════════════════════════════════════════
     // MATHEMATICAL CONSTANTS
@@ -48,16 +48,16 @@ actor NETMIND {
     
     // Node registry
     private stable var nodeCount : Nat = 0;
-    private var nodes = HashMap.HashMap<Text, NetworkNode>(10, Text.equal, Text.hash);
+    private transient var nodes = HashMap.HashMap<Text, NetworkNode>(10, Text.equal, Text.hash);
     
     // Traffic records
-    private var trafficRecords = HashMap.HashMap<Text, TrafficRecord>(10, Text.equal, Text.hash);
+    private transient var trafficRecords = HashMap.HashMap<Text, TrafficRecord>(10, Text.equal, Text.hash);
     
     // Health assessments
-    private var healthAssessments = HashMap.HashMap<Text, NetworkHealthAssessment>(10, Text.equal, Text.hash);
+    private transient var healthAssessments = HashMap.HashMap<Text, NetworkHealthAssessment>(10, Text.equal, Text.hash);
     
     // Fault history
-    private var faultHistory = HashMap.HashMap<Text, FaultRecord>(10, Text.equal, Text.hash);
+    private transient var faultHistory = HashMap.HashMap<Text, FaultRecord>(10, Text.equal, Text.hash);
     
     // ═══════════════════════════════════════════════════════════════════
     // TYPES

@@ -9,6 +9,7 @@ import Engine from './pages/Engine'
 import Agents from './pages/Agents'
 import Renderability from './pages/Renderability'
 import TokenEconomy from './pages/TokenEconomy'
+import ICPCoverage from './pages/ICPCoverage'
 import RealityRelease from './pages/RealityRelease'
 import Executive from './pages/Executive'
 import ETHome from './pages/et/ETHome'
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="agents" element={<Agents />} />
           <Route path="renderability" element={<Renderability />} />
           <Route path="token-economy" element={<TokenEconomy />} />
+          <Route path="icp-coverage" element={<ICPCoverage />} />
           <Route path="reality-release" element={<RealityRelease />} />
           <Route path="executive" element={<Executive />} />
           <Route path="et" element={<Outlet />}>

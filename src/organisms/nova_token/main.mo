@@ -50,6 +50,7 @@
 import Float  "mo:base/Float";
 import Int    "mo:base/Int";
 import Nat    "mo:base/Nat";
+import Nat64  "mo:base/Nat64";
 import Text   "mo:base/Text";
 import Array  "mo:base/Array";
 import Buffer "mo:base/Buffer";
@@ -579,5 +580,337 @@ persistent actor NovaToken {
     "NOVA_TOKEN | status=ACTIVE | v10=true"
   };
 
+  // ══════════════════════════════════════════════════════════════════
+  //  ICRC-1 STANDARD INTERFACE
+  //  Required for SNS token listing and ICP ecosystem compatibility.
+  //  https://github.com/dfinity/ICRC-1
+  // ══════════════════════════════════════════════════════════════════
+
+  /// ICRC-1 Account: owner principal + optional 32-byte subaccount.
+  public type ICRC1Account = {
+    owner      : Principal;
+    subaccount : ?[Nat8];   // 32-byte subaccount; null = default subaccount
+  };
+
+  /// ICRC-1 TransferArgs
+  public type ICRC1TransferArgs = {
+    from_subaccount : ?[Nat8];
+    to              : ICRC1Account;
+    amount          : Nat;
+    fee             : ?Nat;
+    memo            : ?[Nat8];
+    created_at_time : ?Nat64;
+  };
+
+  /// ICRC-1 TransferError variants
+  public type ICRC1TransferError = {
+    #BadFee              : { expected_fee : Nat };
+    #BadBurn             : { min_burn_amount : Nat };
+    #InsufficientFunds   : { balance : Nat };
+    #TooOld;
+    #CreatedInFuture     : { ledger_time : Nat64 };
+    #Duplicate           : { duplicate_of : Nat };
+    #TemporarilyUnavailable;
+    #GenericError        : { error_code : Nat; message : Text };
+  };
+
+  public type ICRC1TransferResult = { #Ok : Nat; #Err : ICRC1TransferError };
+
+  /// MetadataValue for icrc1_metadata
+  public type MetadataValue = {
+    #Nat  : Nat;
+    #Int  : Int;
+    #Text : Text;
+    #Blob : [Nat8];
+  };
+
+  public type SupportedStandard = { name : Text; url : Text };
+
+  /// Transfer fee in e8s (1 e8 = 0.00000001 NOVA)
+  transient let ICRC1_FEE : Nat = 10_000;   // 0.0001 NOVA
+
+  /// ICRC-1 token name
+  public query func icrc1_name() : async Text { "NOVA" };
+
+  /// ICRC-1 token symbol
+  public query func icrc1_symbol() : async Text { "NOVA" };
+
+  /// ICRC-1 token decimals (8, same as ICP)
+  public query func icrc1_decimals() : async Nat8 { 8 };
+
+  /// ICRC-1 transfer fee
+  public query func icrc1_fee() : async Nat { ICRC1_FEE };
+
+  /// ICRC-1 total supply (excludes burned)
+  public query func icrc1_total_supply() : async Nat {
+    TOTAL_SUPPLY_E8S - totalBurned
+  };
+
+  /// ICRC-1 minting account (treasury is the minting authority)
+  public query func icrc1_minting_account() : async ?ICRC1Account {
+    null   // sovereign ledger: minting is governed by protocol calls, not a fixed account
+  };
+
+  /// ICRC-1 metadata
+  public query func icrc1_metadata() : async [(Text, MetadataValue)] {
+    [
+      ("icrc1:name",        #Text "NOVA"),
+      ("icrc1:symbol",      #Text "NOVA"),
+      ("icrc1:decimals",    #Nat  8),
+      ("icrc1:fee",         #Nat  ICRC1_FEE),
+      ("icrc1:logo",        #Text "https://nova-protocol.io/logo.svg"),
+      ("nova:supply_e8s",   #Nat  TOTAL_SUPPLY_E8S),
+      ("nova:phi_exponent", #Nat  13),
+      ("nova:premium_ppm",  #Nat  CYCLE_PREMIUM_PARTS_PER_MILLION),
+    ]
+  };
+
+  /// ICRC-1 supported standards
+  public query func icrc1_supported_standards() : async [SupportedStandard] {
+    [
+      { name = "ICRC-1"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1" },
+      { name = "ICRC-2"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2" },
+    ]
+  };
+
+  /// ICRC-1 balance of an account.
+  /// Uses the free (transferable) balance for the ICRC-1 surface.
+  public query func icrc1_balance_of(account : ICRC1Account) : async Nat {
+    let key = Principal.toText(account.owner);
+    switch (findAccount(key)) {
+      case (?i) accounts.get(i).free;
+      case null 0;
+    }
+  };
+
+  /// ICRC-1 transfer.
+  /// Deducts `fee` from the sender and moves `amount` to the receiver.
+  public shared(msg) func icrc1_transfer(args : ICRC1TransferArgs) : async ICRC1TransferResult {
+    let from = Principal.toText(msg.caller);
+    let to   = Principal.toText(args.to.owner);
+    let fee  = switch (args.fee) { case (?f) f; case null ICRC1_FEE };
+    let total = args.amount + fee;
+
+    if (args.amount == 0) {
+      return #Err(#GenericError { error_code = 1; message = "Amount must be > 0" });
+    };
+
+    let fIdx = getOrCreateAccount(from);
+    let bal  = accountFreeBalance(fIdx);
+
+    if (bal < total) {
+      return #Err(#InsufficientFunds { balance = bal });
+    };
+
+    // Deduct total (amount + fee) from sender; credit amount to receiver; fee is burned
+    deductFree(fIdx, total);
+    let tIdx = getOrCreateAccount(to);
+    creditFreeRole(tIdx, args.amount, #Free);
+    totalBurned += fee;   // fee is permanently burned (deflationary)
+
+    let memo = switch (args.memo) {
+      case (?m) "icrc1:" # Nat.toText(m.size());
+      case null "icrc1:transfer";
+    };
+    let txId = recordTx(from, to, args.amount, #Free, #Transfer, memo);
+    #Ok(txId)
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  ICRC-2 APPROVAL STANDARD
+  //  Enables DeFi patterns (DEX, SNS swap participation, staking).
+  //  https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2
+  // ══════════════════════════════════════════════════════════════════
+
+  public type AllowanceKey = { owner : Text; spender : Text };
+
+  public type Allowance = {
+    allowance       : Nat;
+    expires_at      : ?Nat64;
+  };
+
+  public type ApproveArgs = {
+    from_subaccount : ?[Nat8];
+    spender         : ICRC1Account;
+    amount          : Nat;
+    expected_allowance : ?Nat;
+    expires_at      : ?Nat64;
+    fee             : ?Nat;
+    memo            : ?[Nat8];
+    created_at_time : ?Nat64;
+  };
+
+  public type ApproveError = {
+    #BadFee              : { expected_fee : Nat };
+    #InsufficientFunds   : { balance : Nat };
+    #AllowanceChanged    : { current_allowance : Nat };
+    #Expired             : { ledger_time : Nat64 };
+    #TooOld;
+    #CreatedInFuture     : { ledger_time : Nat64 };
+    #Duplicate           : { duplicate_of : Nat };
+    #TemporarilyUnavailable;
+    #GenericError        : { error_code : Nat; message : Text };
+  };
+
+  public type ApproveResult = { #Ok : Nat; #Err : ApproveError };
+
+  public type TransferFromArgs = {
+    spender_subaccount : ?[Nat8];
+    from               : ICRC1Account;
+    to                 : ICRC1Account;
+    amount             : Nat;
+    fee                : ?Nat;
+    memo               : ?[Nat8];
+    created_at_time    : ?Nat64;
+  };
+
+  public type TransferFromError = {
+    #BadFee              : { expected_fee : Nat };
+    #BadBurn             : { min_burn_amount : Nat };
+    #InsufficientFunds   : { balance : Nat };
+    #InsufficientAllowance : { allowance : Nat };
+    #TooOld;
+    #CreatedInFuture     : { ledger_time : Nat64 };
+    #Duplicate           : { duplicate_of : Nat };
+    #TemporarilyUnavailable;
+    #GenericError        : { error_code : Nat; message : Text };
+  };
+
+  public type TransferFromResult = { #Ok : Nat; #Err : TransferFromError };
+
+  public type AllowanceArgs = {
+    account : ICRC1Account;
+    spender : ICRC1Account;
+  };
+
+  // Allowance registry: owner_text -> spender_text -> allowance record
+  transient let allowances : Buffer.Buffer<(Text, Text, Nat, ?Nat64)> =
+    Buffer.Buffer<(Text, Text, Nat, ?Nat64)>(256);
+
+  func findAllowance(owner : Text, spender : Text) : ?Nat {
+    var i : Nat = 0;
+    while (i < allowances.size()) {
+      let (o, s, _, _) = allowances.get(i);
+      if (o == owner and s == spender) { return ?i };
+      i += 1;
+    };
+    null
+  };
+
+  /// ICRC-2: Approve a spender to transfer up to `amount` on behalf of the caller.
+  public shared(msg) func icrc2_approve(args : ApproveArgs) : async ApproveResult {
+    let owner   = Principal.toText(msg.caller);
+    let spender = Principal.toText(args.spender.owner);
+    let fee     = switch (args.fee) { case (?f) f; case null ICRC1_FEE };
+
+    let oIdx = getOrCreateAccount(owner);
+    if (accountFreeBalance(oIdx) < fee) {
+      return #Err(#InsufficientFunds { balance = accountFreeBalance(oIdx) });
+    };
+
+    // Validate expected_allowance if provided
+    switch (args.expected_allowance) {
+      case (?expected) {
+        switch (findAllowance(owner, spender)) {
+          case (?ai) {
+            let (_, _, current, _) = allowances.get(ai);
+            if (current != expected) {
+              return #Err(#AllowanceChanged { current_allowance = current });
+            };
+          };
+          case null {
+            if (expected != 0) {
+              return #Err(#AllowanceChanged { current_allowance = 0 });
+            };
+          };
+        };
+      };
+      case null {};
+    };
+
+    // Deduct approval fee
+    deductFree(oIdx, fee);
+    totalBurned += fee;
+
+    // Set or update allowance
+    let newEntry = (owner, spender, args.amount, args.expires_at);
+    switch (findAllowance(owner, spender)) {
+      case (?ai) { allowances.put(ai, newEntry) };
+      case null  { allowances.add(newEntry) };
+    };
+
+    let txId = recordTx(owner, spender, args.amount, #Free, #Lock, "icrc2:approve");
+    #Ok(txId)
+  };
+
+  /// ICRC-2: Transfer tokens on behalf of `from` (up to approved allowance).
+  public shared(msg) func icrc2_transfer_from(args : TransferFromArgs) : async TransferFromResult {
+    let spender = Principal.toText(msg.caller);
+    let owner   = Principal.toText(args.from.owner);
+    let to      = Principal.toText(args.to.owner);
+    let fee     = switch (args.fee) { case (?f) f; case null ICRC1_FEE };
+    let total   = args.amount + fee;
+
+    if (args.amount == 0) {
+      return #Err(#GenericError { error_code = 1; message = "Amount must be > 0" });
+    };
+
+    // Check allowance
+    switch (findAllowance(owner, spender)) {
+      case null {
+        return #Err(#InsufficientAllowance { allowance = 0 });
+      };
+      case (?ai) {
+        let (_, _, currentAllowance, expiresAt) = allowances.get(ai);
+
+        // Check expiry
+        switch (expiresAt) {
+          case (?exp) {
+            if (Nat64.toNat(exp) < Int.abs(Time.now()) / 1_000_000) {
+              return #Err(#TooOld);
+            };
+          };
+          case null {};
+        };
+
+        if (currentAllowance < total) {
+          return #Err(#InsufficientAllowance { allowance = currentAllowance });
+        };
+
+        // Check owner balance
+        let oIdx = getOrCreateAccount(owner);
+        let bal  = accountFreeBalance(oIdx);
+        if (bal < total) {
+          return #Err(#InsufficientFunds { balance = bal });
+        };
+
+        // Execute transfer
+        deductFree(oIdx, total);
+        let tIdx = getOrCreateAccount(to);
+        creditFreeRole(tIdx, args.amount, #Free);
+        totalBurned += fee;
+
+        // Reduce allowance
+        let remaining = if (currentAllowance > total) { currentAllowance - total } else { 0 };
+        allowances.put(ai, (owner, spender, remaining, expiresAt));
+
+        let txId = recordTx(owner, to, args.amount, #Free, #Transfer, "icrc2:transfer_from:" # spender);
+        return #Ok(txId);
+      };
+    };
+  };
+
+  /// ICRC-2: Query current allowance for an (account, spender) pair.
+  public query func icrc2_allowance(args : AllowanceArgs) : async Allowance {
+    let owner   = Principal.toText(args.account.owner);
+    let spender = Principal.toText(args.spender.owner);
+    switch (findAllowance(owner, spender)) {
+      case null  { { allowance = 0; expires_at = null } };
+      case (?ai) {
+        let (_, _, amount, expiresAt) = allowances.get(ai);
+        { allowance = amount; expires_at = expiresAt }
+      };
+    }
+  };
 
 }

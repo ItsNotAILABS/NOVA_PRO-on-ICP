@@ -202,8 +202,8 @@ persistent actor PHENOLOGIX {
 
   stable var modelCount : Nat = 0;
 
-  var phenoModels = HashMap.HashMap<Text, PhenologicalModel>(10, Text.equal, Text.hash);
-  var gddHistory = HashMap.HashMap<Text, [GDDCalculation]>(10, Text.equal, Text.hash);
+  transient var phenoModels = HashMap.HashMap<Text, PhenologicalModel>(10, Text.equal, Text.hash);
+  transient var gddHistory = HashMap.HashMap<Text, [GDDCalculation]>(10, Text.equal, Text.hash);
 
   // ══════════════════════════════════════════════════════════════════
   //  CORE FUNCTIONS — Phenological Intelligence
