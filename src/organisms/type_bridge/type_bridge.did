@@ -1,0 +1,254 @@
+// Type Bridge Candid Interface
+// Auto-generated from bridge.manifest.json
+// Defines the complete ICP canister interface for Julia ↔ Motoko ↔ JavaScript bridge
+
+// ══════════════════════════════════════════════════════════════════
+//  PRIMITIVE ALIASES
+// ══════════════════════════════════════════════════════════════════
+
+// All primitives map directly to Candid types
+
+// ══════════════════════════════════════════════════════════════════
+//  SCIENTIFIC TYPES
+// ══════════════════════════════════════════════════════════════════
+
+// Complex number (Julia: ComplexF64)
+type Complex = record {
+    re : float64;
+    im : float64;
+};
+
+// Sparse matrix in CSC format (Julia: SparseMatrixCSC)
+type SparseMatrix = record {
+    colptr : vec nat32;    // Column pointers
+    rowval : vec nat32;    // Row indices
+    nzval : vec float64;   // Non-zero values
+    m : nat32;             // Rows
+    n : nat32;             // Columns
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  NOVA-SPECIFIC TYPES
+// ══════════════════════════════════════════════════════════════════
+
+// φ-weighted value container
+type PhiWeighted = record {
+    value : float64;
+    weight : float64;      // φ^rank where rank ∈ {0,1,2,3,4}
+};
+
+// 3D coordinate point
+type Point3D = record {
+    x : float64;
+    y : float64;
+    z : float64;
+};
+
+// Cognitive Internal Language emission
+type CILEmission = record {
+    organism_id : text;
+    timestamp_ns : int64;
+    thought : text;
+    confidence : float64;
+    phi_weight : float64;
+    biorhythm : float64;
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  FUNCTION RESULT TYPES
+// ══════════════════════════════════════════════════════════════════
+
+// Eigendecomposition result
+type EigenResult = record {
+    values : vec float64;        // Eigenvalues
+    vectors : vec vec float64;   // Eigenvectors (as rows)
+    phi_coherence : float64;     // φ-normalized coherence
+};
+
+// SVD result
+type SVDResult = record {
+    U : vec vec float64;         // Left singular vectors
+    S : vec float64;             // Singular values
+    Vt : vec vec float64;        // Right singular vectors (transposed)
+    phi_rank : nat;              // φ-weighted effective rank
+};
+
+// FFT result
+type FFTResult = record {
+    frequencies : vec float64;   // Frequency bins
+    magnitudes : vec float64;    // Magnitude spectrum
+    phases : vec float64;        // Phase spectrum
+    phi_peaks : vec nat;         // Fibonacci-indexed peak bins
+};
+
+// Kuramoto synchronization arguments
+type KuramotoArgs = record {
+    phases : vec float64;        // Initial oscillator phases
+    frequencies : vec float64;   // Natural frequencies
+    coupling : float64;          // Coupling strength K
+    dt : float64;                // Time step
+    steps : nat;                 // Number of simulation steps
+};
+
+// Kuramoto synchronization result
+type KuramotoResult = record {
+    final_phases : vec float64;     // Final oscillator phases
+    order_parameter : float64;      // Kuramoto order parameter R
+    coherence_history : vec float64; // R over time
+};
+
+// Matrix coherence result
+type CoherenceResult = record {
+    frobenius_norm : float64;    // Frobenius norm
+    phi_coherence : float64;     // φ-normalized coherence (0-1)
+    rank_estimate : nat;         // Numerical rank estimate
+    condition_number : float64;  // Condition number
+};
+
+// Roundtrip validation result
+type RoundtripResult = record {
+    success : bool;
+    original_hash : text;
+    roundtrip_hash : text;
+    error : opt text;
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  BRIDGE METADATA TYPES
+// ══════════════════════════════════════════════════════════════════
+
+// Type mapping entry
+type TypeMapping = record {
+    julia_type : text;
+    motoko_type : text;
+    javascript_type : text;
+    candid_type : text;
+    roundtrip_tested : bool;
+    notes : opt text;
+};
+
+// Function card
+type FunctionCard = record {
+    name : text;
+    category : text;
+    purpose : text;
+    julia_signature : text;
+    motoko_signature : text;
+    candid_signature : text;
+    typescript_signature : text;
+    deterministic : bool;
+    supports_wasm : bool;
+    canister_safe : text;
+    compute_location : text;
+    numeric_notes : opt text;
+    ai_usage : opt text;
+};
+
+// Bridge manifest subset
+type BridgeInfo = record {
+    name : text;
+    version : text;
+    languages : vec text;
+    function_count : nat;
+    type_mapping_count : nat;
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  SERVICE INTERFACE
+// ══════════════════════════════════════════════════════════════════
+
+service : {
+    // ─────────────────────────────────────────────────────────────
+    //  LINEAR ALGEBRA
+    // ─────────────────────────────────────────────────────────────
+    
+    // Eigendecomposition with φ-scaling
+    // Note: Heavy compute should be off-chain; this wraps pre-computed results
+    phiEigen : (matrix : vec vec float64) -> (EigenResult);
+    
+    // SVD with φ-weighted rank
+    phiSVD : (matrix : vec vec float64) -> (SVDResult);
+    
+    // Matrix coherence metrics
+    matrixCoherence : (matrix : vec vec float64) -> (CoherenceResult);
+    
+    // ─────────────────────────────────────────────────────────────
+    //  SIGNAL PROCESSING
+    // ─────────────────────────────────────────────────────────────
+    
+    // FFT with φ-harmonic peak detection
+    phiFFT : (signal : vec float64) -> (FFTResult);
+    
+    // ─────────────────────────────────────────────────────────────
+    //  DYNAMICAL SYSTEMS
+    // ─────────────────────────────────────────────────────────────
+    
+    // Kuramoto model synchronization
+    kuramotoSync : (args : KuramotoArgs) -> (KuramotoResult);
+    
+    // ─────────────────────────────────────────────────────────────
+    //  TEMPORAL / STATISTICS
+    // ─────────────────────────────────────────────────────────────
+    
+    // Calculate biorhythm score (lightweight, canister-safe)
+    calculateBiorhythm : (timestamp_ms : float64) -> (float64) query;
+    
+    // φ-weighted mean (lightweight, canister-safe)
+    phiWeightedMean : (values : vec float64, ranks : vec nat) -> (float64) query;
+    
+    // ─────────────────────────────────────────────────────────────
+    //  BRIDGE UTILITIES
+    // ─────────────────────────────────────────────────────────────
+    
+    // Validate roundtrip for a type
+    validateRoundtrip : (encoded : blob, type_tag : text) -> (RoundtripResult);
+    
+    // ─────────────────────────────────────────────────────────────
+    //  BRIDGE METADATA (AI-READABLE)
+    // ─────────────────────────────────────────────────────────────
+    
+    // Get bridge info
+    getBridgeInfo : () -> (BridgeInfo) query;
+    
+    // List all supported type mappings
+    listTypeMappings : () -> (vec TypeMapping) query;
+    
+    // Get type mapping for a Julia type
+    getTypeMapping : (julia_type : text) -> (opt TypeMapping) query;
+    
+    // List all function cards
+    listFunctionCards : () -> (vec FunctionCard) query;
+    
+    // Get function card by name
+    getFunctionCard : (name : text) -> (opt FunctionCard) query;
+    
+    // ─────────────────────────────────────────────────────────────
+    //  CONSTANTS
+    // ─────────────────────────────────────────────────────────────
+    
+    // Get golden ratio constants
+    getPhiConstants : () -> (record {
+        phi : float64;
+        phi2 : float64;
+        phi3 : float64;
+        phi4 : float64;
+        phi_inv : float64;
+    }) query;
+    
+    // ─────────────────────────────────────────────────────────────
+    //  SELF-REFLECTION (v10 standard)
+    // ─────────────────────────────────────────────────────────────
+    
+    diag : () -> (record {
+        status : text;
+        health : float64;
+        name : text;
+        timestamp : int;
+    }) query;
+    
+    heal : () -> (text);
+    
+    register : () -> (text);
+    
+    report_status : () -> (text) query;
+}

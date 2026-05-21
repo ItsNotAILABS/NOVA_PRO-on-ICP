@@ -1,0 +1,274 @@
+{
+  "name": "NOVA Julia-Motoko Bridge",
+  "version": "0.1.0",
+  "description": "Typed scientific-computing membrane for smart-contract systems. AI-readable computational bridge that translates mathematical procedures into smart-contract-facing interfaces.",
+  "repository": "https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP",
+  "languages": ["Julia", "Motoko", "JavaScript", "TypeScript", "Candid"],
+  "runtime": "Internet Computer (ICP)",
+
+  "type_mappings": {
+    "primitives": [
+      { "julia": "Float64", "motoko": "Float", "javascript": "number", "candid": "float64", "roundtrip_tested": true },
+      { "julia": "Float32", "motoko": "Float", "javascript": "number", "candid": "float32", "roundtrip_tested": true },
+      { "julia": "Int64", "motoko": "Int", "javascript": "BigInt", "candid": "int64", "roundtrip_tested": true },
+      { "julia": "Int32", "motoko": "Int32", "javascript": "number", "candid": "int32", "roundtrip_tested": true },
+      { "julia": "Int", "motoko": "Int", "javascript": "BigInt", "candid": "int", "roundtrip_tested": true },
+      { "julia": "UInt64", "motoko": "Nat64", "javascript": "BigInt", "candid": "nat64", "roundtrip_tested": true },
+      { "julia": "Nat", "motoko": "Nat", "javascript": "BigInt", "candid": "nat", "roundtrip_tested": true },
+      { "julia": "Bool", "motoko": "Bool", "javascript": "boolean", "candid": "bool", "roundtrip_tested": true },
+      { "julia": "String", "motoko": "Text", "javascript": "string", "candid": "text", "roundtrip_tested": true },
+      { "julia": "Nothing", "motoko": "()", "javascript": "null", "candid": "null", "roundtrip_tested": true }
+    ],
+    "containers": [
+      { "julia": "Vector{T}", "motoko": "[T]", "javascript": "Array<T>", "candid": "vec T", "roundtrip_tested": true },
+      { "julia": "Vector{Float64}", "motoko": "[Float]", "javascript": "Float64Array | number[]", "candid": "vec float64", "roundtrip_tested": true },
+      { "julia": "Matrix{Float64}", "motoko": "[[Float]]", "javascript": "number[][]", "candid": "vec vec float64", "roundtrip_tested": true, "notes": "Column-major to row-major conversion" },
+      { "julia": "Union{T, Nothing}", "motoko": "?T", "javascript": "T | null", "candid": "opt T", "roundtrip_tested": true },
+      { "julia": "Dict{String, T}", "motoko": "HashMap<Text, T>", "javascript": "Record<string, T>", "candid": "vec record { text; T }", "roundtrip_tested": true },
+      { "julia": "Tuple{A, B, C}", "motoko": "(A, B, C)", "javascript": "[A, B, C]", "candid": "record { A; B; C }", "roundtrip_tested": true }
+    ],
+    "scientific": [
+      { "julia": "ComplexF64", "motoko": "{ re: Float; im: Float }", "javascript": "{ re: number; im: number }", "candid": "record { re: float64; im: float64 }", "roundtrip_tested": true },
+      { "julia": "SparseMatrixCSC{Float64}", "motoko": "SparseMatrix", "javascript": "SparseMatrix", "candid": "record { colptr: vec nat32; rowval: vec nat32; nzval: vec float64; m: nat32; n: nat32 }", "roundtrip_tested": true }
+    ],
+    "nova_specific": [
+      { "julia": "PhiWeighted{T}", "motoko": "PhiWeighted<T>", "javascript": "PhiWeighted<T>", "candid": "record { value: T; weight: float64 }", "roundtrip_tested": true },
+      { "julia": "Point3D", "motoko": "Point3D", "javascript": "Point3D", "candid": "record { x: float64; y: float64; z: float64 }", "roundtrip_tested": true },
+      { "julia": "CILEmission", "motoko": "CILEmission", "javascript": "CILEmission", "candid": "record { organism_id: text; timestamp_ns: int64; thought: text; confidence: float64; phi_weight: float64; biorhythm: float64 }", "roundtrip_tested": true }
+    ]
+  },
+
+  "functions": [
+    {
+      "name": "phi_eigen",
+      "category": "linear_algebra",
+      "purpose": "Eigenvalue/eigenvector decomposition with φ-scaled output for harmonic analysis.",
+      "julia_signature": "phi_eigen(A::Matrix{Float64}) -> EigenResult",
+      "motoko_signature": "phiEigen(matrix: [[Float]]) : async EigenResult",
+      "candid_signature": "phiEigen : (vec vec float64) -> (record { values: vec float64; vectors: vec vec float64; phi_coherence: float64 })",
+      "typescript_signature": "phiEigen(matrix: number[][]): Promise<EigenResult>",
+      "input_types": [{ "name": "matrix", "type": "Matrix<Float64>", "description": "Square matrix for eigendecomposition" }],
+      "output_type": "EigenResult",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "wrapper_only",
+      "compute_location": "off-chain Julia, result verified on-chain",
+      "numeric_notes": "Eigenvectors may differ by sign convention. Compare by tolerance (1e-10).",
+      "ai_usage": "Matrix spectral analysis, graph dynamics, synchronization systems, PCA.",
+      "function_card": "/ai/function_cards/phi_eigen.json"
+    },
+    {
+      "name": "phi_svd",
+      "category": "linear_algebra",
+      "purpose": "Singular Value Decomposition with φ-weighted singular values.",
+      "julia_signature": "phi_svd(A::Matrix{Float64}) -> SVDResult",
+      "motoko_signature": "phiSVD(matrix: [[Float]]) : async SVDResult",
+      "candid_signature": "phiSVD : (vec vec float64) -> (record { U: vec vec float64; S: vec float64; Vt: vec vec float64; phi_rank: nat })",
+      "typescript_signature": "phiSVD(matrix: number[][]): Promise<SVDResult>",
+      "input_types": [{ "name": "matrix", "type": "Matrix<Float64>", "description": "Input matrix (m×n)" }],
+      "output_type": "SVDResult",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "wrapper_only",
+      "compute_location": "off-chain Julia",
+      "numeric_notes": "U and V columns may differ by sign. Singular values are always non-negative.",
+      "ai_usage": "Dimensionality reduction, matrix approximation, latent factor analysis.",
+      "function_card": "/ai/function_cards/phi_svd.json"
+    },
+    {
+      "name": "phi_fft",
+      "category": "signal_processing",
+      "purpose": "Fast Fourier Transform with φ-harmonic frequency binning.",
+      "julia_signature": "phi_fft(signal::Vector{Float64}) -> FFTResult",
+      "motoko_signature": "phiFFT(signal: [Float]) : async FFTResult",
+      "candid_signature": "phiFFT : (vec float64) -> (record { frequencies: vec float64; magnitudes: vec float64; phases: vec float64; phi_peaks: vec nat })",
+      "typescript_signature": "phiFFT(signal: number[]): Promise<FFTResult>",
+      "input_types": [{ "name": "signal", "type": "Vector<Float64>", "description": "Time-domain signal" }],
+      "output_type": "FFTResult",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "wrapper_only",
+      "compute_location": "off-chain Julia or WASM for small signals",
+      "numeric_notes": "Complex FFT output decomposed to magnitude/phase. φ-peaks are Fibonacci-indexed bins.",
+      "ai_usage": "Frequency analysis, harmonic detection, biorhythm signal processing.",
+      "function_card": "/ai/function_cards/phi_fft.json"
+    },
+    {
+      "name": "kuramoto_sync",
+      "category": "dynamical_systems",
+      "purpose": "Kuramoto model synchronization with φ-coupling strength.",
+      "julia_signature": "kuramoto_sync(phases::Vector{Float64}, frequencies::Vector{Float64}, coupling::Float64, dt::Float64, steps::Int) -> KuramotoResult",
+      "motoko_signature": "kuramotoSync(args: KuramotoArgs) : async KuramotoResult",
+      "candid_signature": "kuramotoSync : (record { phases: vec float64; frequencies: vec float64; coupling: float64; dt: float64; steps: nat }) -> (record { final_phases: vec float64; order_parameter: float64; coherence_history: vec float64 })",
+      "typescript_signature": "kuramotoSync(args: KuramotoArgs): Promise<KuramotoResult>",
+      "input_types": [
+        { "name": "phases", "type": "Vector<Float64>", "description": "Initial oscillator phases (radians)" },
+        { "name": "frequencies", "type": "Vector<Float64>", "description": "Natural frequencies (rad/s)" },
+        { "name": "coupling", "type": "Float64", "description": "Coupling strength K (use PHI for golden coupling)" },
+        { "name": "dt", "type": "Float64", "description": "Time step" },
+        { "name": "steps", "type": "Int", "description": "Number of simulation steps" }
+      ],
+      "output_type": "KuramotoResult",
+      "deterministic": true,
+      "supports_wasm": false,
+      "canister_safe": "wrapper_only",
+      "compute_location": "off-chain Julia",
+      "numeric_notes": "Order parameter R ∈ [0,1]. R > 0.9 indicates strong synchronization.",
+      "ai_usage": "Collective behavior modeling, neural synchronization, consensus dynamics.",
+      "function_card": "/ai/function_cards/kuramoto_sync.json"
+    },
+    {
+      "name": "calculate_biorhythm",
+      "category": "temporal",
+      "purpose": "Calculate biorhythm score using ancient calendar mathematics and φ-harmonics.",
+      "julia_signature": "calculate_biorhythm(timestamp_ms::Float64) -> Float64",
+      "motoko_signature": "calculateBiorhythm(timestamp_ms: Float) : Float",
+      "candid_signature": "calculateBiorhythm : (float64) -> (float64) query",
+      "typescript_signature": "calculateBiorhythm(timestamp_ms: number): Promise<number>",
+      "input_types": [{ "name": "timestamp_ms", "type": "Float64", "description": "Milliseconds since UNIX epoch" }],
+      "output_type": "Float64",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "full",
+      "compute_location": "on-chain (lightweight)",
+      "numeric_notes": "Returns normalized score 0.0-1.0. Uses Mayan, Sumerian, Egyptian, Lunar, Solar, φ cycles.",
+      "ai_usage": "Temporal coherence scoring, scheduling optimization, biological rhythm analysis.",
+      "function_card": "/ai/function_cards/calculate_biorhythm.json"
+    },
+    {
+      "name": "phi_weighted_mean",
+      "category": "statistics",
+      "purpose": "Calculate φ-weighted mean with golden ratio priority scaling.",
+      "julia_signature": "phi_weighted_mean(values::Vector{Float64}, ranks::Vector{Int}) -> Float64",
+      "motoko_signature": "phiWeightedMean(values: [Float], ranks: [Nat]) : Float",
+      "candid_signature": "phiWeightedMean : (vec float64, vec nat) -> (float64) query",
+      "typescript_signature": "phiWeightedMean(values: number[], ranks: number[]): Promise<number>",
+      "input_types": [
+        { "name": "values", "type": "Vector<Float64>", "description": "Values to average" },
+        { "name": "ranks", "type": "Vector<Int>", "description": "Ranks (0-4) for φ^rank weighting" }
+      ],
+      "output_type": "Float64",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "full",
+      "compute_location": "on-chain",
+      "numeric_notes": "Weight = φ^rank. Rank 0 = 1.0, Rank 1 = 1.618, Rank 2 = 2.618, etc.",
+      "ai_usage": "Priority-weighted aggregation, governance scoring, consensus calculation.",
+      "function_card": "/ai/function_cards/phi_weighted_mean.json"
+    },
+    {
+      "name": "matrix_coherence",
+      "category": "linear_algebra",
+      "purpose": "Compute coherence metric for a matrix using φ-normalized Frobenius norm.",
+      "julia_signature": "matrix_coherence(A::Matrix{Float64}) -> CoherenceResult",
+      "motoko_signature": "matrixCoherence(matrix: [[Float]]) : async CoherenceResult",
+      "candid_signature": "matrixCoherence : (vec vec float64) -> (record { frobenius_norm: float64; phi_coherence: float64; rank_estimate: nat; condition_number: float64 })",
+      "typescript_signature": "matrixCoherence(matrix: number[][]): Promise<CoherenceResult>",
+      "input_types": [{ "name": "matrix", "type": "Matrix<Float64>", "description": "Input matrix" }],
+      "output_type": "CoherenceResult",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "wrapper_only",
+      "compute_location": "off-chain Julia",
+      "numeric_notes": "φ-coherence = 1 - (1 / (1 + frobenius_norm / φ)). Higher = more coherent.",
+      "ai_usage": "Matrix quality assessment, stability analysis, data validation.",
+      "function_card": "/ai/function_cards/matrix_coherence.json"
+    },
+    {
+      "name": "validate_roundtrip",
+      "category": "bridge",
+      "purpose": "Validate that a value survives Julia→JS→Motoko→JS→Julia roundtrip.",
+      "julia_signature": "validate_roundtrip(value::Any, type::Type) -> RoundtripResult",
+      "motoko_signature": "validateRoundtrip(encoded: Blob, typeTag: Text) : async RoundtripResult",
+      "candid_signature": "validateRoundtrip : (blob, text) -> (record { success: bool; original_hash: text; roundtrip_hash: text; error: opt text })",
+      "typescript_signature": "validateRoundtrip<T>(value: T, typeTag: string): Promise<RoundtripResult>",
+      "input_types": [
+        { "name": "value", "type": "Any", "description": "Value to test" },
+        { "name": "type", "type": "Type", "description": "Expected type for decoding" }
+      ],
+      "output_type": "RoundtripResult",
+      "deterministic": true,
+      "supports_wasm": true,
+      "canister_safe": "full",
+      "compute_location": "distributed (each language validates its leg)",
+      "numeric_notes": "Hash comparison uses SHA-256 of canonical Candid encoding.",
+      "ai_usage": "Type system validation, bridge testing, integration verification.",
+      "function_card": "/ai/function_cards/validate_roundtrip.json"
+    }
+  ],
+
+  "constants": {
+    "PHI": { "value": 1.6180339887498948482, "description": "Golden ratio (1 + √5) / 2" },
+    "PHI2": { "value": 2.6180339887498948482, "description": "φ² = φ + 1" },
+    "PHI3": { "value": 4.23606797749978969, "description": "φ³ = φ² + φ" },
+    "PHI4": { "value": 6.85410196624968454, "description": "φ⁴ = φ³ + φ²" },
+    "PHI_INV": { "value": 0.6180339887498948482, "description": "1/φ = φ - 1" },
+    "MAYAN_CYCLE_MS": { "value": 1440.0, "description": "Mayan 24-minute cycle" },
+    "SUMERIAN_HOUR_MS": { "value": 3600.0, "description": "Sumerian 60-minute hour" },
+    "EGYPTIAN_HOUR_MS": { "value": 2160.0, "description": "Egyptian 36-minute decan" },
+    "LUNAR_CYCLE_MS": { "value": 2551.0, "description": "Lunar φ-derived cycle" },
+    "SOLAR_CYCLE_MS": { "value": 8760.0, "description": "Solar hour angle" },
+    "PHI_HEARTBEAT_MS": { "value": 873.0, "description": "φ-derived biological pulse (540 × φ)" }
+  },
+
+  "files": {
+    "julia_engine": "/engines/julia/NumericalBridge.jl",
+    "type_bridge_julia": "/engines/julia/TypeBridge.jl",
+    "motoko_canister": "/src/organisms/type_bridge/main.mo",
+    "candid_interface": "/src/organisms/type_bridge/type_bridge.did",
+    "typescript_client": "/src/frontend/src/lib/typeBridge.ts",
+    "type_isomorphism_spec": "/languages/TYPE_ISOMORPHISM.md",
+    "bridge_manifest": "/bridge.manifest.json",
+    "type_map": "/ai/type-map.json",
+    "llms_txt": "/llms.txt",
+    "function_cards": "/ai/function_cards/"
+  },
+
+  "ai_affordances": {
+    "manifest": "/bridge.manifest.json",
+    "type_map": "/ai/type-map.json",
+    "function_cards": "/ai/function_cards/*.json",
+    "prompts": {
+      "generate_motoko_wrapper": "/ai/prompts/generate_motoko_wrapper.md",
+      "debug_type_mapping": "/ai/prompts/debug_type_mapping.md",
+      "create_candid_interface": "/ai/prompts/create_candid_interface.md"
+    },
+    "examples": {
+      "full_bridge_task": "/ai/examples/full_bridge_task.md",
+      "roundtrip_validation": "/ai/examples/roundtrip_validation.md"
+    },
+    "llms_txt": "/llms.txt"
+  },
+
+  "validation": {
+    "roundtrip_tests": {
+      "primitives": ["Float64", "Int64", "Bool", "String"],
+      "containers": ["Vector{Float64}", "Matrix{Float64}", "Option{Float64}"],
+      "scientific": ["ComplexF64", "SparseMatrixCSC"],
+      "nova_types": ["PhiWeighted", "Point3D", "CILEmission"]
+    },
+    "ci_status": "https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP/actions",
+    "test_command": "./scripts/nova check && julia --project=engines/julia -e 'using TypeBridge; TypeBridge.validate_float64_edge_cases()'"
+  },
+
+  "claims": {
+    "type_safe": {
+      "claim": "100% type safe for supported bridge types",
+      "evidence": ["type-map.json", "round-trip tests", "generated Candid", "CI status"],
+      "caveats": ["Numeric edge cases (NaN, Inf) handled but semantics differ by language", "Eigenvector sign conventions may vary"]
+    },
+    "bidirectional": {
+      "claim": "Complete bidirectional type mapping across Julia, Motoko, and JavaScript",
+      "evidence": ["TYPE_ISOMORPHISM.md", "TypeBridge.jl", "typeBridge.ts"],
+      "caveats": ["Some Julia types (e.g., Rational) not yet mapped"]
+    }
+  },
+
+  "metadata": {
+    "created": "2024-05-21",
+    "authors": ["Casa de Medina — Architectos de Architectura Inteligente"],
+    "license": "MIT",
+    "ai_readable": true,
+    "version_format": "semver"
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "name": "phi_eigen",
+  "version": "0.1.0",
+  "category": "linear_algebra",
+  
+  "purpose": "Eigenvalue/eigenvector decomposition with φ-scaled coherence metric for harmonic analysis.",
+  
+  "description": "Computes the eigendecomposition of a square matrix and adds a φ-coherence metric that measures how 'golden' the eigenvalue spectrum is. Higher coherence indicates eigenvalues are closer together relative to φ.",
+  
+  "signatures": {
+    "julia": {
+      "signature": "phi_eigen(A::Matrix{Float64}) -> EigenResult",
+      "module": "NumericalBridge",
+      "file": "/engines/julia/NumericalBridge.jl",
+      "example": "result = phi_eigen([4.0 2.0; 2.0 3.0])"
+    },
+    "motoko": {
+      "signature": "phiEigen(matrix: [[Float]]) : async EigenResult",
+      "canister": "type_bridge",
+      "file": "/src/organisms/type_bridge/main.mo",
+      "example": "let result = await TypeBridge.phiEigen([[4.0, 2.0], [2.0, 3.0]])"
+    },
+    "candid": {
+      "signature": "phiEigen : (vec vec float64) -> (record { values: vec float64; vectors: vec vec float64; phi_coherence: float64 })",
+      "file": "/src/organisms/type_bridge/type_bridge.did"
+    },
+    "typescript": {
+      "signature": "phiEigen(matrix: number[][]): Promise<EigenResult>",
+      "module": "typeBridge",
+      "file": "/src/frontend/src/lib/typeBridge.ts",
+      "example": "const result = await bridge.phiEigen([[4, 2], [2, 3]])"
+    }
+  },
+  
+  "input": {
+    "name": "matrix",
+    "type": {
+      "julia": "Matrix{Float64}",
+      "motoko": "[[Float]]",
+      "javascript": "number[][]",
+      "candid": "vec vec float64"
+    },
+    "constraints": [
+      "Must be square (n × n)",
+      "Preferably symmetric for real eigenvalues",
+      "Non-empty"
+    ],
+    "example": [[4.0, 2.0], [2.0, 3.0]]
+  },
+  
+  "output": {
+    "type": "EigenResult",
+    "fields": {
+      "values": {
+        "type": "vec float64",
+        "description": "Eigenvalues sorted by absolute magnitude (descending)",
+        "example": [5.236, 1.764]
+      },
+      "vectors": {
+        "type": "vec vec float64",
+        "description": "Eigenvectors as rows (normalized to unit length)",
+        "example": [[0.707, 0.707], [-0.707, 0.707]]
+      },
+      "phi_coherence": {
+        "type": "float64",
+        "description": "φ-normalized coherence metric: 1 / (1 + |λ_max - λ_min| / φ)",
+        "range": "[0, 1]",
+        "interpretation": "Higher = eigenvalues closer together, more 'coherent' spectrum",
+        "example": 0.318
+      }
+    }
+  },
+  
+  "properties": {
+    "deterministic": true,
+    "supports_wasm": true,
+    "canister_safe": "wrapper_only",
+    "compute_location": "off-chain Julia, result verified on-chain",
+    "complexity": "O(n³) for n×n matrix",
+    "memory": "O(n²)"
+  },
+  
+  "numeric_caveats": [
+    {
+      "issue": "Eigenvector sign ambiguity",
+      "description": "Eigenvectors are defined up to a sign. v and -v are both valid eigenvectors for the same eigenvalue.",
+      "mitigation": "Compare eigenvectors by computing |v₁ · v₂| ≈ 1 rather than v₁ ≈ v₂"
+    },
+    {
+      "issue": "Complex eigenvalues",
+      "description": "Non-symmetric matrices may have complex eigenvalues. This function returns only real parts.",
+      "mitigation": "Use symmetric matrices for real eigenvalue guarantee, or check imaginary parts in Julia"
+    },
+    {
+      "issue": "Numerical precision",
+      "description": "Eigenvalue computation has ~1e-15 relative error for well-conditioned matrices.",
+      "mitigation": "Use tolerance-based comparisons: |λ₁ - λ₂| < ε × max(|λ₁|, |λ₂|)"
+    }
+  ],
+  
+  "ai_usage": {
+    "use_cases": [
+      "Matrix spectral analysis",
+      "Principal Component Analysis (PCA)",
+      "Graph dynamics and Laplacian eigenvalues",
+      "Kuramoto synchronization eigenmode analysis",
+      "Stability analysis of dynamical systems",
+      "Quantum state decomposition"
+    ],
+    "when_to_use": "When you need to understand the fundamental modes/directions of a linear transformation, or when analyzing the spectral properties of a system.",
+    "when_not_to_use": "For very large matrices (>1000×1000), consider iterative methods. For sparse matrices, use specialized sparse eigensolvers."
+  },
+  
+  "roundtrip_tested": true,
+  "test_vectors": [
+    {
+      "input": [[1.0, 0.0], [0.0, 1.0]],
+      "expected_values": [1.0, 1.0],
+      "expected_phi_coherence": 1.0,
+      "note": "Identity matrix: all eigenvalues equal"
+    },
+    {
+      "input": [[2.0, 1.0], [1.0, 2.0]],
+      "expected_values": [3.0, 1.0],
+      "expected_phi_coherence": 0.447,
+      "note": "Simple symmetric 2×2"
+    },
+    {
+      "input": [[4.0, 2.0], [2.0, 3.0]],
+      "expected_values": [5.236, 1.764],
+      "expected_phi_coherence": 0.318,
+      "note": "Example from documentation"
+    }
+  ],
+  
+  "related_functions": [
+    {
+      "name": "phi_svd",
+      "relation": "SVD generalizes eigendecomposition to non-square matrices"
+    },
+    {
+      "name": "matrix_coherence",
+      "relation": "Uses Frobenius norm rather than eigenvalue spread"
+    }
+  ],
+  
+  "references": [
+    {
+      "title": "Linear Algebra and Its Applications",
+      "author": "Gilbert Strang",
+      "relevance": "Eigenvalue theory"
+    },
+    {
+      "title": "Golden Ratio in Spectral Analysis",
+      "note": "φ-coherence is a NOVA-specific metric"
+    }
+  ],
+  
+  "metadata": {
+    "created": "2024-05-21",
+    "ai_readable": true,
+    "human_readable": true,
+    "machine_callable": true
+  }
+}

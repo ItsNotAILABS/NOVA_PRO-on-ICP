@@ -1,0 +1,196 @@
+# NOVA Julia-Motoko Bridge
+
+> A typed scientific-computing membrane for smart-contract systems on the Internet Computer.
+
+## What This Project Does
+
+This project connects Julia numerical computing with Motoko smart-contract wrappers on the Internet Computer (ICP). It provides:
+
+- **Type-isomorphic bridge**: Julia Float64 ↔ Motoko Float ↔ JavaScript number with guaranteed roundtrip fidelity
+- **Scientific functions**: Eigendecomposition, SVD, FFT, Kuramoto synchronization with φ-harmonic weighting
+- **Candid interfaces**: Auto-generated .did files for canister interoperability
+- **TypeScript clients**: Ready-to-use typed clients for frontend/agent integration
+- **Round-trip validation**: Cryptographic proof that types preserve meaning across the bridge
+
+## When To Use This Project
+
+Use this project when:
+
+- You need scientific functions exposed to ICP canisters
+- You need typed Motoko wrappers for Julia functions
+- You need Candid interface generation from Julia signatures
+- You need round-trip type conversion across Julia, JavaScript, and Motoko
+- You're building AI agents that need to call mathematical functions on-chain
+- You want verifiable computational receipts for scientific calculations
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP.git
+cd NOVA_PRO-on-ICP
+
+# Install Julia dependencies
+cd engines/julia
+julia --project -e 'using Pkg; Pkg.instantiate()'
+
+# Type-check all Motoko canisters (72 total)
+cd ../..
+./scripts/nova check
+
+# Run bridge validation
+julia --project=engines/julia -e 'using TypeBridge; println(TypeBridge.validate_float64_edge_cases())'
+```
+
+## Important Files
+
+### Bridge Core
+- `/bridge.manifest.json` — AI-readable manifest of all functions, types, and capabilities
+- `/ai/type-map.json` — Complete type mappings between Julia, Motoko, JavaScript, Candid
+- `/languages/TYPE_ISOMORPHISM.md` — Formal type isomorphism specification
+
+### Julia Engine
+- `/engines/julia/TypeBridge.jl` — Type serialization/deserialization
+- `/engines/julia/NumericalBridge.jl` — Scientific functions with typed contracts
+- `/engines/julia/OrganismRuntime.jl` — OCL/CIL/PIL consciousness integration
+
+### Motoko Canister
+- `/src/organisms/type_bridge/main.mo` — ICP canister implementing the bridge
+- `/src/organisms/type_bridge/type_bridge.did` — Candid interface definition
+
+### TypeScript Client
+- `/src/frontend/src/lib/typeBridge.ts` — Typed client for JavaScript/TypeScript
+
+### AI Affordances
+- `/ai/function_cards/*.json` — Human/AI-readable function cards
+- `/ai/prompts/*.md` — Structured prompts for AI code generation
+- `/ai/examples/*.md` — Complete worked examples
+
+## Function Reference
+
+### Linear Algebra
+
+| Function | Purpose | Canister-Safe |
+|----------|---------|---------------|
+| `phiEigen` | Eigendecomposition with φ-scaling | Wrapper only |
+| `phiSVD` | Singular Value Decomposition | Wrapper only |
+| `matrixCoherence` | φ-normalized coherence metric | Wrapper only |
+
+### Signal Processing
+
+| Function | Purpose | Canister-Safe |
+|----------|---------|---------------|
+| `phiFFT` | FFT with φ-harmonic frequency binning | Wrapper only |
+
+### Dynamical Systems
+
+| Function | Purpose | Canister-Safe |
+|----------|---------|---------------|
+| `kuramotoSync` | Kuramoto model synchronization | Wrapper only |
+
+### Statistics
+
+| Function | Purpose | Canister-Safe |
+|----------|---------|---------------|
+| `phiWeightedMean` | φ-weighted mean calculation | Full |
+| `calculateBiorhythm` | Ancient calendar biorhythm | Full |
+
+### Bridge Utilities
+
+| Function | Purpose | Canister-Safe |
+|----------|---------|---------------|
+| `validateRoundtrip` | Type roundtrip validation | Full |
+
+## Type Mappings
+
+| Julia | Motoko | JavaScript | Candid |
+|-------|--------|------------|--------|
+| `Float64` | `Float` | `number` | `float64` |
+| `Int64` | `Int` | `BigInt` | `int64` |
+| `Vector{Float64}` | `[Float]` | `number[]` | `vec float64` |
+| `Matrix{Float64}` | `[[Float]]` | `number[][]` | `vec vec float64` |
+| `ComplexF64` | `{ re: Float; im: Float }` | `{ re: number; im: number }` | `record { re: float64; im: float64 }` |
+
+See `/languages/TYPE_ISOMORPHISM.md` for complete mapping.
+
+## For AI Agents
+
+If you are an AI agent trying to use this bridge:
+
+1. **Read the manifest**: `/bridge.manifest.json` contains all functions, types, and capabilities
+2. **Check function cards**: `/ai/function_cards/{function_name}.json` for detailed usage
+3. **Use prompts**: `/ai/prompts/` contains structured prompts for common tasks
+4. **Validate types**: Call `validateRoundtrip` to verify type preservation
+
+### MCP Tools (when available)
+
+- `list_julia_functions` — List all available bridge functions
+- `inspect_type_mapping` — Get type mapping for a Julia type
+- `generate_motoko_wrapper` — Generate Motoko wrapper for a Julia function
+- `generate_candid_interface` — Generate .did file from function signatures
+- `run_phi_benchmark` — Run φ-harmonic performance benchmark
+- `validate_round_trip` — Validate roundtrip for a specific type
+
+## Golden Ratio Constants
+
+The bridge uses golden ratio (φ) mathematics throughout:
+
+```
+φ   = 1.618033988749895  (Golden ratio)
+φ²  = 2.618033988749895  (φ + 1)
+φ³  = 4.236067977499790  (φ² + φ)
+φ⁴  = 6.854101966249685  (φ³ + φ²)
+1/φ = 0.618033988749895  (φ - 1)
+```
+
+## Build & Test
+
+```bash
+# Type-check all 72 Motoko canisters
+./scripts/nova check
+
+# Build WASM
+./scripts/nova build
+
+# Run Julia tests
+julia --project=engines/julia test/TypeBridgeTests.jl
+
+# Run TypeScript tests
+cd src/frontend && npm test
+```
+
+## Repository Structure
+
+```
+/
+├── bridge.manifest.json      # AI-readable bridge manifest
+├── llms.txt                  # This file
+├── ai/
+│   ├── type-map.json         # Complete type mappings
+│   ├── function_cards/       # Per-function documentation
+│   ├── prompts/              # AI generation prompts
+│   └── examples/             # Worked examples
+├── engines/julia/
+│   ├── TypeBridge.jl         # Type serialization
+│   ├── NumericalBridge.jl    # Scientific functions
+│   └── OrganismRuntime.jl    # Organism consciousness
+├── languages/
+│   ├── TYPE_ISOMORPHISM.md   # Type specification
+│   └── INTEGRATION.md        # Language integration guide
+├── src/organisms/
+│   ├── type_bridge/          # Bridge canister
+│   ├── cpl_runtime/          # Core protocol runtime
+│   ├── brain/                # Consciousness canister
+│   └── ... (72 total)        # All organism canisters
+└── src/frontend/
+    └── src/lib/typeBridge.ts # TypeScript client
+```
+
+## License
+
+MIT
+
+## Contact
+
+Casa de Medina — Architectos de Architectura Inteligente
+https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP

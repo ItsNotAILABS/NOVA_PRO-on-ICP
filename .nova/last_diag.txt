@@ -70,4 +70,5 @@ OK signalforge
 OK spectrion
 OK terragenesis
 OK icp_coverage
-SUMMARY: 72/72 passed
+OK type_bridge
+SUMMARY: 73/73 passed

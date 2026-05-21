@@ -287,6 +287,10 @@
     "icp_coverage": {
       "main": "src/organisms/icp_coverage/main.mo",
       "type": "motoko"
+    },
+    "type_bridge": {
+      "main": "src/organisms/type_bridge/main.mo",
+      "type": "motoko"
     }
   }
 }
