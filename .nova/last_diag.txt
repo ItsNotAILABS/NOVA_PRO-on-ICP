@@ -72,4 +72,7 @@ OK terragenesis
 OK icp_coverage
 OK type_bridge
 OK ssn_token
-SUMMARY: 74/74 passed
+OK ssn_work (rust)
+OK ssn_trust (rust)
+OK ssn_gov (rust)
+SUMMARY: 77/77 passed

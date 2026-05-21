@@ -147,8 +147,17 @@ for name, spec in canisters.items():
     main = spec.get("main")
     if not main:
         raise SystemExit(f"error: canister '{name}' is missing 'main'")
-    print(f"{name}\t{main}")
+    ctype = spec.get("type", "motoko")
+    print(f"{name}\t{main}\t{ctype}")
 PY
+}
+
+load_motoko_canisters() {
+  load_canisters | awk -F'\t' '$3 == "motoko" { print $1 "\t" $2 }'
+}
+
+load_rust_canisters() {
+  load_canisters | awk -F'\t' '$3 == "rust" { print $1 "\t" $2 }'
 }
 
 require_moc() {
@@ -166,10 +175,10 @@ require_moc() {
 #
 run_fix() {
   local entries
-  entries="$(load_canisters)"
+  entries="$(load_motoko_canisters)"
 
   if [[ -z "$entries" ]]; then
-    log_warn "No canisters configured — nothing to fix."
+    log_warn "No Motoko canisters configured — nothing to fix."
     return
   fi
 
@@ -241,9 +250,12 @@ run_fix() {
 # ── CHECK — type-check all canisters (continues on error) ────────────────────
 run_check() {
   local entries
-  entries="$(load_canisters)"
+  entries="$(load_motoko_canisters)"
 
-  if [[ -z "$entries" ]]; then
+  local rust_entries
+  rust_entries="$(load_rust_canisters)"
+
+  if [[ -z "$entries" && -z "$rust_entries" ]]; then
     log_warn "No canisters configured — nothing to check."
     return 0
   fi
@@ -256,44 +268,73 @@ run_check() {
 
   log_hdr "NOVA check — type-checking all canisters"
 
-  while IFS=$'\t' read -r name main; do
-    local source_path="$ROOT_DIR/$main"
-    if [[ ! -f "$source_path" ]]; then
-      log_err "$name: source not found at $main"
-      echo "ERR $name: source not found" >> "$DIAG_FILE"
-      failed=$((failed + 1))
-      failed_list="$failed_list $name"
-      total=$((total + 1))
-      continue
-    fi
-
-    total=$((total + 1))
-    local out
-    out="$("$MOC_BIN" "${_MOC_BASE_FLAGS[@]}" --check "$source_path" 2>&1 || true)"
-    local errors
-    errors="$(echo "$out" | grep 'error \[' || true)"
-
-    if [[ -z "$errors" ]]; then
-      passed=$((passed + 1))
-      local warns
-      warns="$(echo "$out" | grep -c 'warning \[' || true)"
-      if [[ "$warns" -gt 0 ]]; then
-        log_ok "$name ($warns warning(s))"
-      else
-        log_ok "$name"
+  # Check Motoko canisters with moc
+  if [[ -n "$entries" ]]; then
+    while IFS=$'\t' read -r name main; do
+      local source_path="$ROOT_DIR/$main"
+      if [[ ! -f "$source_path" ]]; then
+        log_err "$name: source not found at $main"
+        echo "ERR $name: source not found" >> "$DIAG_FILE"
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        total=$((total + 1))
+        continue
       fi
-      echo "OK $name" >> "$DIAG_FILE"
-    else
-      failed=$((failed + 1))
-      failed_list="$failed_list $name"
-      log_err "$name — ERRORS:"
-      echo "$errors" | while IFS= read -r line; do
-        echo "    $line"
-      done
-      echo "ERR $name:" >> "$DIAG_FILE"
-      echo "$errors" >> "$DIAG_FILE"
-    fi
-  done <<< "$entries"
+
+      total=$((total + 1))
+      local out
+      out="$("$MOC_BIN" "${_MOC_BASE_FLAGS[@]}" --check "$source_path" 2>&1 || true)"
+      local errors
+      errors="$(echo "$out" | grep 'error \[' || true)"
+
+      if [[ -z "$errors" ]]; then
+        passed=$((passed + 1))
+        local warns
+        warns="$(echo "$out" | grep -c 'warning \[' || true)"
+        if [[ "$warns" -gt 0 ]]; then
+          log_ok "$name ($warns warning(s))"
+        else
+          log_ok "$name"
+        fi
+        echo "OK $name" >> "$DIAG_FILE"
+      else
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        log_err "$name — ERRORS:"
+        echo "$errors" | while IFS= read -r line; do
+          echo "    $line"
+        done
+        echo "ERR $name:" >> "$DIAG_FILE"
+        echo "$errors" >> "$DIAG_FILE"
+      fi
+    done <<< "$entries"
+  fi
+
+  # Check Rust canisters with cargo check
+  if [[ -n "$rust_entries" ]]; then
+    local rust_out
+    rust_out="$(cd "$ROOT_DIR" && cargo check --target wasm32-unknown-unknown 2>&1 || true)"
+    local rust_errors
+    rust_errors="$(echo "$rust_out" | grep '^error' || true)"
+
+    while IFS=$'\t' read -r name main; do
+      total=$((total + 1))
+      if [[ -z "$rust_errors" ]]; then
+        passed=$((passed + 1))
+        log_ok "$name (rust)"
+        echo "OK $name (rust)" >> "$DIAG_FILE"
+      else
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        log_err "$name (rust) — ERRORS:"
+        echo "$rust_errors" | head -5 | while IFS= read -r line; do
+          echo "    $line"
+        done
+        echo "ERR $name (rust):" >> "$DIAG_FILE"
+        echo "$rust_errors" >> "$DIAG_FILE"
+      fi
+    done <<< "$rust_entries"
+  fi
 
   echo ""
   if [[ $failed -eq 0 ]]; then
@@ -309,9 +350,12 @@ run_check() {
 # ── BUILD — compile all to WASM (continues on error) ─────────────────────────
 run_build() {
   local entries
-  entries="$(load_canisters)"
+  entries="$(load_motoko_canisters)"
 
-  if [[ -z "$entries" ]]; then
+  local rust_entries
+  rust_entries="$(load_rust_canisters)"
+
+  if [[ -z "$entries" && -z "$rust_entries" ]]; then
     log_warn "No canisters configured — nothing to build."
     return 0
   fi
@@ -323,34 +367,60 @@ run_build() {
 
   log_hdr "NOVA build — compiling all canisters to WASM"
 
-  while IFS=$'\t' read -r name main; do
-    local source_path="$ROOT_DIR/$main"
-    local output_path="$BUILD_DIR/$name.wasm"
+  # Build Motoko canisters
+  if [[ -n "$entries" ]]; then
+    while IFS=$'\t' read -r name main; do
+      local source_path="$ROOT_DIR/$main"
+      local output_path="$BUILD_DIR/$name.wasm"
 
-    if [[ ! -f "$source_path" ]]; then
-      log_err "$name: source not found at $main"
-      failed=$((failed + 1))
-      failed_list="$failed_list $name"
+      if [[ ! -f "$source_path" ]]; then
+        log_err "$name: source not found at $main"
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        total=$((total + 1))
+        continue
+      fi
+
       total=$((total + 1))
-      continue
-    fi
+      local out
+      out="$("$MOC_BIN" "${_MOC_BASE_FLAGS[@]}" "$source_path" -o "$output_path" 2>&1 || true)"
+      local errors
+      errors="$(echo "$out" | grep 'error \[' || true)"
 
-    total=$((total + 1))
-    local out
-    out="$("$MOC_BIN" "${_MOC_BASE_FLAGS[@]}" "$source_path" -o "$output_path" 2>&1 || true)"
-    local errors
-    errors="$(echo "$out" | grep 'error \[' || true)"
+      if [[ -z "$errors" ]]; then
+        built=$((built + 1))
+        log_ok "$name → .nova/build/$name.wasm"
+      else
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        log_err "$name — ERRORS:"
+        echo "$errors" | while IFS= read -r line; do echo "    $line"; done
+      fi
+    done <<< "$entries"
+  fi
 
-    if [[ -z "$errors" ]]; then
-      built=$((built + 1))
-      log_ok "$name → .nova/build/$name.wasm"
-    else
-      failed=$((failed + 1))
-      failed_list="$failed_list $name"
-      log_err "$name — ERRORS:"
-      echo "$errors" | while IFS= read -r line; do echo "    $line"; done
-    fi
-  done <<< "$entries"
+  # Build Rust canisters
+  if [[ -n "$rust_entries" ]]; then
+    local rust_out
+    rust_out="$(cd "$ROOT_DIR" && cargo build --target wasm32-unknown-unknown --release 2>&1 || true)"
+    local rust_errors
+    rust_errors="$(echo "$rust_out" | grep '^error' || true)"
+
+    while IFS=$'\t' read -r name main; do
+      total=$((total + 1))
+      local wasm_path="$ROOT_DIR/target/wasm32-unknown-unknown/release/${name}.wasm"
+      if [[ -z "$rust_errors" && -f "$wasm_path" ]]; then
+        built=$((built + 1))
+        cp "$wasm_path" "$BUILD_DIR/$name.wasm"
+        log_ok "$name → .nova/build/$name.wasm (rust)"
+      else
+        failed=$((failed + 1))
+        failed_list="$failed_list $name"
+        log_err "$name (rust) — ERRORS:"
+        echo "$rust_errors" | head -5 | while IFS= read -r line; do echo "    $line"; done
+      fi
+    done <<< "$rust_entries"
+  fi
 
   echo ""
   if [[ $failed -eq 0 ]]; then
@@ -388,8 +458,8 @@ run_list() {
     return
   fi
   log_hdr "NOVA list — $(echo "$entries" | wc -l | tr -d ' ') canisters"
-  while IFS=$'\t' read -r name main; do
-    echo "  ${_C_CYN}${name}${_C_RST}  →  $main"
+  while IFS=$'\t' read -r name main ctype; do
+    echo "  ${_C_CYN}${name}${_C_RST}  →  $main  [${ctype}]"
   done <<< "$entries"
 }
 

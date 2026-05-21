@@ -1,0 +1,19 @@
+[workspace]
+members = [
+  "src/organisms/ssn_work",
+  "src/organisms/ssn_trust",
+  "src/organisms/ssn_gov",
+]
+resolver = "2"
+
+[workspace.dependencies]
+candid = "0.10"
+ic-cdk = "0.16"
+ic-cdk-macros = "0.16"
+ic-cdk-timers = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "0.11"
+
+[profile.release]
+opt-level = "z"
+lto = true

@@ -1,0 +1,15 @@
+[package]
+name = "ssn_work"
+version = "0.1.618"
+edition = "2021"
+description = "SSN-WORK: Contribution / Labor Token — ICRC-1 compliant fungible sub-coin"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+candid = { workspace = true }
+ic-cdk = { workspace = true }
+ic-cdk-macros = { workspace = true }
+serde = { workspace = true }

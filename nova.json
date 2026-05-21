@@ -295,6 +295,24 @@
     "ssn_token": {
       "main": "src/organisms/ssn_token/main.mo",
       "type": "motoko"
+    },
+    "ssn_work": {
+      "main": "src/organisms/ssn_work/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_work/ssn_work.did",
+      "package": "ssn_work"
+    },
+    "ssn_trust": {
+      "main": "src/organisms/ssn_trust/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_trust/ssn_trust.did",
+      "package": "ssn_trust"
+    },
+    "ssn_gov": {
+      "main": "src/organisms/ssn_gov/src/lib.rs",
+      "type": "rust",
+      "candid": "src/organisms/ssn_gov/ssn_gov.did",
+      "package": "ssn_gov"
     }
   }
 }
