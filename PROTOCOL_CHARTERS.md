@@ -885,6 +885,36 @@ All protocol charters are:
 - ✅ Intellectual property protected
 - ✅ Industry-standard protocols
 
+---
+
+## 🔑 ALPHA CHARTER
+
+### SSN Alpha Charter (SSN-ALPHA-2026)
+**Official Designation: SSN-ALPHA-2026-MEDINA**
+
+**Domain:** Sovereign Soulbound Identity — the foundational identity layer for the entire protocol
+
+**Status:** ALPHA — This is the root protocol. All other protocols depend on SSN identity.
+
+**Full Charter:** [`SSN_ALPHA_CHARTER.md`](./SSN_ALPHA_CHARTER.md)
+
+**Key Protocols:**
+- Soulbound non-transferable identity token (1 per verified identity)
+- SSN-WORK, SSN-TRUST, SSN-GOV tradable sub-coins
+- φ-based staking curves: R(s,r,t) = k × s^(1/φ) × (1+r)^(1/φ) × [1 + (1 - e^(-t/(φT)))]
+- Julia-computed reputation and mint caps
+
+**Governed Organisms:**
+- ssn_token, nova_token, sovereign, oracle, veritex, effecttrace
+
+**Evolution Path:**
+- v0.1.618: Core SSN registry + φ-staking curves
+- v1.1.618: Dynamic Julia mint caps + cross-organism attestation
+- v2.1.618: Multi-organism SSN federation
+- v3.1.618: zk-proof SSN verification
+
+---
+
 **License:** Proprietary - Casa de Medina exclusive use
 
 ---
