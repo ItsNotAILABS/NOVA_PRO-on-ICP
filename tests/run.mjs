@@ -48,6 +48,8 @@ const TEST_FILES = [
   join(__dir, 'nova-tokenizer.test.js'),
   join(__dir, 'observer-intelligence.test.js'),
   join(__dir, 'ai-protocol-engine.test.js'),
+  // ─── Token 30K Threshold Tests ─────────────────────────────────────────
+  join(__dir, 'nova-token-30k.test.js'),
 ].map(f => pathToFileURL(f).href);
 
 // Dynamic import runs the test file in the current process,
