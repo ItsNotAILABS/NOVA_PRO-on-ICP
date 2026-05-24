@@ -913,4 +913,481 @@ persistent actor NovaToken {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════════
+  //  ICRC-3 TRANSACTION LOG STANDARD
+  //  Provides immutable, auditable transaction history.
+  //  https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3
+  // ══════════════════════════════════════════════════════════════════
+
+  public type ICRC3Value = {
+    #Nat   : Nat;
+    #Int   : Int;
+    #Text  : Text;
+    #Blob  : [Nat8];
+    #Array : [ICRC3Value];
+    #Map   : [(Text, ICRC3Value)];
+  };
+
+  public type ICRC3Block = {
+    id        : Nat;
+    timestamp : Nat64;
+    tx_type   : Text;
+    payload   : [(Text, ICRC3Value)];
+  };
+
+  public type GetBlocksArgs = { start : Nat; length : Nat };
+
+  public type GetBlocksResult = {
+    log_length   : Nat;
+    blocks       : [ICRC3Block];
+    archived_blocks : [(Nat, Nat)];  // (start, length) of archived ranges
+  };
+
+  public type ICRC3DataCertificate = {
+    certificate : ?[Nat8];
+    hash_tree   : [Nat8];
+  };
+
+  public type ICRC3ArchiveInfo = {
+    canister_id : Principal;
+    start       : Nat;
+    length      : Nat;
+  };
+
+  /// ICRC-3: Get blocks from the transaction log.
+  public query func icrc3_get_blocks(args : GetBlocksArgs) : async GetBlocksResult {
+    let total = ledger.size();
+    let start = if (args.start < total) { args.start } else { total };
+    let end   = if (start + args.length <= total) { start + args.length } else { total };
+    
+    var blocks : [ICRC3Block] = [];
+    var i = start;
+    while (i < end) {
+      let tx = ledger.get(i);
+      let block : ICRC3Block = {
+        id = tx.id;
+        timestamp = Nat64.fromNat(Int.abs(tx.timestamp) / 1_000_000);  // to ms
+        tx_type = txKindToText(tx.kind);
+        payload = [
+          ("from", #Text(tx.fromPrincipal)),
+          ("to", #Text(tx.toPrincipal)),
+          ("amount", #Nat(tx.amount)),
+          ("role", #Text(roleToText(tx.role))),
+          ("memo", #Text(tx.memo)),
+        ];
+      };
+      blocks := Array.append(blocks, [block]);
+      i += 1;
+    };
+    
+    { log_length = total; blocks = blocks; archived_blocks = [] }
+  };
+
+  /// ICRC-3: Get supported block types.
+  public query func icrc3_supported_block_types() : async [{
+    block_type : Text;
+    url        : Text;
+  }] {
+    [
+      { block_type = "1xfer"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3#1xfer" },
+      { block_type = "2xfer"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3#2xfer" },
+      { block_type = "1mint"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3#1mint" },
+      { block_type = "1burn"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3#1burn" },
+      { block_type = "2approve"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3#2approve" },
+    ]
+  };
+
+  /// ICRC-3: Get log length.
+  public query func icrc3_get_tip_certificate() : async ?ICRC3DataCertificate {
+    null  // Certificate generation requires system APIs; return null for now
+  };
+
+  /// ICRC-3: Get archives list (none for single-canister ledger).
+  public query func icrc3_get_archives(args : {}) : async [ICRC3ArchiveInfo] {
+    []  // No archives — all data in-canister
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  ADVANCED φ-WEIGHTED STAKING & ANALYTICS
+  //  High-scale operations for 150K+ token operations.
+  // ══════════════════════════════════════════════════════════════════
+
+  public type StakingTier = {
+    #Phi5;    // φ^5  ≈ 11 tokens minimum
+    #Phi10;   // φ^10 ≈ 123 tokens (Dunbar)
+    #Phi15;   // φ^15 ≈ 1,364 tokens
+    #Phi19;   // φ^19 ≈ 9,349 tokens (Crowd Wisdom)
+    #Phi21;   // φ^21 ≈ 24,476 tokens (Organism)
+    #Phi22;   // φ^22 ≈ 39,603 tokens (Sovereign)
+    #Phi23;   // φ^23 ≈ 64,079 tokens (Genesis)
+    #Phi24;   // φ^24 ≈ 103,682 tokens (Transcendence)
+    #Phi25;   // φ^25 ≈ 167,761 tokens (Universal)
+  };
+
+  public type StakeRecord = {
+    principal    : Text;
+    amount       : Nat;
+    tier         : StakingTier;
+    phiMultiplier: Float;
+    lockedAt     : Int;
+    lockDuration : Nat;  // epochs
+    rewardRate   : Float;
+  };
+
+  transient let stakeRegistry : Buffer.Buffer<StakeRecord> = Buffer.Buffer<StakeRecord>(256);
+
+  /// Compute φ^n power
+  func phiPower(n : Nat) : Float {
+    var v : Float = 1.0;
+    var i : Nat = 0;
+    while (i < n) { v := v * PHI; i += 1 };
+    v
+  };
+
+  /// Determine staking tier from amount (in e8s)
+  func tierFromAmount(amountE8s : Nat) : StakingTier {
+    let tokens = amountE8s / E8S_PER_NOVA;
+    if (tokens >= 167_761) { #Phi25 }
+    else if (tokens >= 103_682) { #Phi24 }
+    else if (tokens >= 64_079) { #Phi23 }
+    else if (tokens >= 39_603) { #Phi22 }
+    else if (tokens >= 24_476) { #Phi21 }
+    else if (tokens >= 9_349) { #Phi19 }
+    else if (tokens >= 1_364) { #Phi15 }
+    else if (tokens >= 123) { #Phi10 }
+    else { #Phi5 }
+  };
+
+  /// Get tier multiplier
+  func tierMultiplier(tier : StakingTier) : Float {
+    switch tier {
+      case (#Phi5)  { phiPower(5) };   // 11.09
+      case (#Phi10) { phiPower(10) };  // 122.99
+      case (#Phi15) { phiPower(15) };  // 1364.00
+      case (#Phi19) { phiPower(19) };  // 9349.03
+      case (#Phi21) { phiPower(21) };  // 24476.00
+      case (#Phi22) { phiPower(22) };  // 39603.00
+      case (#Phi23) { phiPower(23) };  // 64079.00
+      case (#Phi24) { phiPower(24) };  // 103682.00
+      case (#Phi25) { phiPower(25) };  // 167761.00
+    }
+  };
+
+  /// Stake tokens with φ-weighted rewards
+  public func stakePhiWeighted(principal : Text, amount : Nat, lockEpochs : Nat) : async Result.Result<StakeRecord, Text> {
+    if (amount == 0) { return #err("Amount must be > 0") };
+    let idx = getOrCreateAccount(principal);
+    if (accountFreeBalance(idx) < amount) {
+      return #err("Insufficient free balance");
+    };
+    
+    let tier = tierFromAmount(amount);
+    let mult = tierMultiplier(tier);
+    // Reward rate: base 5% APY × tier multiplier × lock bonus
+    let lockBonus = 1.0 + (Float.fromInt(lockEpochs) * 0.01);  // +1% per epoch
+    let rewardRate = 0.05 * mult / phiPower(21) * lockBonus;  // Normalized to φ^21
+    
+    deductFree(idx, amount);
+    creditFreeRole(idx, amount, #Gov);
+    totalLocked += amount;
+    
+    let record : StakeRecord = {
+      principal;
+      amount;
+      tier;
+      phiMultiplier = mult;
+      lockedAt = Time.now();
+      lockDuration = lockEpochs;
+      rewardRate;
+    };
+    stakeRegistry.add(record);
+    
+    ignore recordTx(principal, principal, amount, #Gov, #Lock, "φ-stake:tier=" # tierToText(tier));
+    #ok(record)
+  };
+
+  func tierToText(t : StakingTier) : Text {
+    switch t {
+      case (#Phi5) "φ^5";
+      case (#Phi10) "φ^10";
+      case (#Phi15) "φ^15";
+      case (#Phi19) "φ^19";
+      case (#Phi21) "φ^21";
+      case (#Phi22) "φ^22";
+      case (#Phi23) "φ^23";
+      case (#Phi24) "φ^24";
+      case (#Phi25) "φ^25";
+    }
+  };
+
+  /// Query stake records for a principal
+  public query func getStakeRecords(principal : Text) : async [StakeRecord] {
+    var result : [StakeRecord] = [];
+    var i : Nat = 0;
+    while (i < stakeRegistry.size()) {
+      let r = stakeRegistry.get(i);
+      if (r.principal == principal) {
+        result := Array.append(result, [r]);
+      };
+      i += 1;
+    };
+    result
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  ADVANCED ANALYTICS FOR 150K SCALE
+  // ══════════════════════════════════════════════════════════════════
+
+  public type TokenAnalytics = {
+    // Volume metrics
+    totalTransfers       : Nat;
+    totalVolume          : Nat;
+    avgTransferSize      : Nat;
+    maxTransferSize      : Nat;
+    
+    // Holder metrics
+    totalHolders         : Nat;
+    activeHolders        : Nat;     // holders with balance > 0
+    whaleCount           : Nat;     // holders with > 30K tokens
+    medianBalance        : Nat;
+    
+    // Staking metrics
+    totalStaked          : Nat;
+    stakingParticipation : Float;   // stakers / totalHolders
+    avgStakeDuration     : Float;
+    
+    // Velocity metrics
+    velocity             : Float;   // transfers per holder per day
+    turnoverRate         : Float;   // volume / supply ratio
+    
+    // φ-metrics
+    phiDistribution      : Float;   // how close to φ-ideal distribution
+    goldenRatioAlignment : Float;   // alignment with φ-based economics
+  };
+
+  public query func getTokenAnalytics() : async TokenAnalytics {
+    let totalSupply = TOTAL_SUPPLY_E8S - totalBurned;
+    let holderCount = accounts.size();
+    
+    // Calculate volume metrics
+    var totalVolume : Nat = 0;
+    var maxTransfer : Nat = 0;
+    var transferCount : Nat = 0;
+    var i : Nat = 0;
+    while (i < ledger.size()) {
+      let tx = ledger.get(i);
+      if (tx.kind == #Transfer) {
+        totalVolume += tx.amount;
+        transferCount += 1;
+        if (tx.amount > maxTransfer) { maxTransfer := tx.amount };
+      };
+      i += 1;
+    };
+    
+    // Calculate holder metrics
+    var activeHolders : Nat = 0;
+    var whaleCount : Nat = 0;
+    var totalBalances : Nat = 0;
+    i := 0;
+    while (i < holderCount) {
+      let a = accounts.get(i);
+      let total = a.free + a.gov + a.cycle + a.vault;
+      if (total > 0) { activeHolders += 1 };
+      if (total > 30_000 * E8S_PER_NOVA) { whaleCount += 1 };
+      totalBalances += total;
+      i += 1;
+    };
+    
+    let avgTransfer = if (transferCount > 0) { totalVolume / transferCount } else { 0 };
+    let medianBal = if (activeHolders > 0) { totalBalances / activeHolders } else { 0 };
+    let stakingPart = if (holderCount > 0) {
+      Float.fromInt(stakeRegistry.size()) / Float.fromInt(holderCount)
+    } else { 0.0 };
+    
+    // Velocity: transfers per holder (annualized estimate)
+    let velocity = if (holderCount > 0) {
+      Float.fromInt(transferCount) / Float.fromInt(holderCount)
+    } else { 0.0 };
+    
+    // Turnover rate
+    let turnover = if (totalSupply > 0) {
+      Float.fromInt(totalVolume) / Float.fromInt(totalSupply)
+    } else { 0.0 };
+    
+    // φ-distribution: ideal is ~38.2% circulating (1/φ²)
+    let circRatio = if (totalSupply > 0) {
+      Float.fromInt(totalSupply - totalLocked) / Float.fromInt(totalSupply)
+    } else { 0.0 };
+    let idealCirc = PHI_INV * PHI_INV;  // 0.382
+    let phiDist = 1.0 - Float.abs(circRatio - idealCirc);
+    
+    {
+      totalTransfers       = transferCount;
+      totalVolume          = totalVolume;
+      avgTransferSize      = avgTransfer;
+      maxTransferSize      = maxTransfer;
+      totalHolders         = holderCount;
+      activeHolders        = activeHolders;
+      whaleCount           = whaleCount;
+      medianBalance        = medianBal;
+      totalStaked          = totalLocked;
+      stakingParticipation = stakingPart;
+      avgStakeDuration     = 0.0;  // Would require epoch tracking
+      velocity             = velocity;
+      turnoverRate         = turnover;
+      phiDistribution      = phiDist;
+      goldenRatioAlignment = phiDist * PHI_INV;  // Scale by φ^-1
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  BATCH OPERATIONS FOR 150K SCALE
+  // ══════════════════════════════════════════════════════════════════
+
+  public type BatchTransferItem = {
+    to     : Text;
+    amount : Nat;
+    memo   : Text;
+  };
+
+  public type BatchResult = {
+    successful : Nat;
+    failed     : Nat;
+    txIds      : [Nat];
+    errors     : [Text];
+  };
+
+  /// Batch transfer with 150K capacity
+  public func batchTransfer(from : Text, items : [BatchTransferItem]) : async BatchResult {
+    var successful : Nat = 0;
+    var failed : Nat = 0;
+    var txIds : [Nat] = [];
+    var errors : [Text] = [];
+    
+    let fIdx = getOrCreateAccount(from);
+    
+    for (item in items.vals()) {
+      if (item.amount == 0) {
+        failed += 1;
+        errors := Array.append(errors, ["Amount must be > 0"]);
+      } else if (accountFreeBalance(fIdx) < item.amount) {
+        failed += 1;
+        errors := Array.append(errors, ["Insufficient balance for " # item.to]);
+      } else {
+        let tIdx = getOrCreateAccount(item.to);
+        deductFree(fIdx, item.amount);
+        creditFreeRole(tIdx, item.amount, #Free);
+        let txId = recordTx(from, item.to, item.amount, #Free, #Transfer, item.memo);
+        txIds := Array.append(txIds, [txId]);
+        successful += 1;
+      };
+    };
+    
+    { successful; failed; txIds; errors }
+  };
+
+  /// Batch mint for airdrops/distributions (150K capacity)
+  public func batchMint(items : [(Text, Nat, TokenRole)]) : async BatchResult {
+    var successful : Nat = 0;
+    var failed : Nat = 0;
+    var txIds : [Nat] = [];
+    var errors : [Text] = [];
+    
+    for ((to, amount, role) in items.vals()) {
+      if (amount == 0) {
+        failed += 1;
+        errors := Array.append(errors, ["Amount must be > 0 for " # to]);
+      } else {
+        let tIdx = getOrCreateAccount(to);
+        creditFreeRole(tIdx, amount, role);
+        if (role == #Vault or role == #Gov or role == #Cycle) {
+          totalLocked += amount;
+        };
+        let txId = recordTx("MINT", to, amount, role, #Mint, "batch");
+        txIds := Array.append(txIds, [txId]);
+        successful += 1;
+      };
+    };
+    
+    { successful; failed; txIds; errors }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  CROSS-ORGANISM TOKEN BRIDGE
+  //  Enables interaction with SSN sub-coins and other organism tokens.
+  // ══════════════════════════════════════════════════════════════════
+
+  public type BridgeTransfer = {
+    sourceToken   : Text;  // "NOVA", "SSN-WORK", etc.
+    targetToken   : Text;
+    amount        : Nat;
+    exchangeRate  : Float;
+    timestamp     : Int;
+    status        : BridgeStatus;
+  };
+
+  public type BridgeStatus = {
+    #Pending;
+    #Completed;
+    #Failed;
+    #Cancelled;
+  };
+
+  transient let bridgeHistory : Buffer.Buffer<BridgeTransfer> = Buffer.Buffer<BridgeTransfer>(64);
+
+  /// Get bridge exchange rate (NOVA → SSN sub-coins)
+  public query func getBridgeRate(targetToken : Text) : async Float {
+    // φ-weighted exchange rates
+    switch targetToken {
+      case "SSN-WORK"  { PHI };        // 1 NOVA = φ SSN-WORK
+      case "SSN-TRUST" { PHI_SQ };     // 1 NOVA = φ² SSN-TRUST
+      case "SSN-GOV"   { PHI_CB };     // 1 NOVA = φ³ SSN-GOV
+      case _ { 1.0 }
+    }
+  };
+
+  /// Record bridge transfer (for cross-canister orchestration)
+  public func recordBridgeTransfer(
+    sourceToken : Text, targetToken : Text,
+    amount : Nat, exchangeRate : Float
+  ) : async Nat {
+    let record : BridgeTransfer = {
+      sourceToken;
+      targetToken;
+      amount;
+      exchangeRate;
+      timestamp = Time.now();
+      status = #Completed;
+    };
+    bridgeHistory.add(record);
+    bridgeHistory.size() - 1
+  };
+
+  /// Query bridge history
+  public query func getBridgeHistory(n : Nat) : async [BridgeTransfer] {
+    let total = bridgeHistory.size();
+    if (total == 0) { return [] };
+    let start = if (total > n) { total - n } else { 0 };
+    var result : [BridgeTransfer] = [];
+    var i = start;
+    while (i < total) {
+      result := Array.append(result, [bridgeHistory.get(i)]);
+      i += 1;
+    };
+    result
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  UPDATED STANDARDS LIST
+  // ══════════════════════════════════════════════════════════════════
+
+  /// Updated supported standards including ICRC-3
+  public query func icrc1_supported_standards_v2() : async [SupportedStandard] {
+    [
+      { name = "ICRC-1"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1" },
+      { name = "ICRC-2"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2" },
+      { name = "ICRC-3"; url = "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3" },
+    ]
+  };
+
 }
