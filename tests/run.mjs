@@ -24,6 +24,7 @@ register(pathToFileURL(join(__dir, 'hooks.mjs')).href, pathToFileURL('./'));
 // ─── Test files ──────────────────────────────────────────────────────────
 
 const TEST_FILES = [
+  // ─── Existing SDK Tests ─────────────────────────────────────────────────
   join(__dir, 'geometric-key-protocol.test.js'),
   join(__dir, 'geometry-lock-sdk.test.js'),
   join(__dir, 'geometry-bridge.test.js'),
@@ -39,6 +40,14 @@ const TEST_FILES = [
   join(__dir, 'thesis-alpha-constants.test.js'),
   join(__dir, 'birth-ai.test.js'),
   join(__dir, 'alpha-sdk.test.js'),
+  // ─── New SDK Protocol Tests ─────────────────────────────────────────────
+  join(__dir, 'governance-protocol.test.js'),
+  join(__dir, 'temporal-sync.test.js'),
+  join(__dir, 'discovery-protocol.test.js'),
+  // ─── Core Module Tests ──────────────────────────────────────────────────
+  join(__dir, 'nova-tokenizer.test.js'),
+  join(__dir, 'observer-intelligence.test.js'),
+  join(__dir, 'ai-protocol-engine.test.js'),
 ].map(f => pathToFileURL(f).href);
 
 // Dynamic import runs the test file in the current process,
