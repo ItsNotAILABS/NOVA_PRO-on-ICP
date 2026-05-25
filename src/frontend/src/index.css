@@ -1,3 +1,15 @@
+/**
+ * NOVA Platform — Tailwind CSS with φ-Mathematics Foundation
+ *
+ * Golden-ratio spacing, Fibonacci grid tracks, sovereign color palette.
+ * Casa de Medina — Architectos de Architectura Inteligente
+ */
+
+/* Tailwind Base Layers */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Global styles */
 *, *::before, *::after {
   box-sizing: border-box;
