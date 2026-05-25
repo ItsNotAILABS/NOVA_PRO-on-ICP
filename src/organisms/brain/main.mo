@@ -56,6 +56,50 @@ import Result "mo:base/Result";
 persistent actor Brain {
 
   // ══════════════════════════════════════════════════════════════════
+  //  SANSKRIT PROTO WIRING — Foundation Layer (LISTEN ONLY)
+  // ══════════════════════════════════════════════════════════════════
+  //  Brain can UNDERSTAND Sanskrit Proto signals but cannot SPEAK
+  //
+
+  public type SanprotoKaraka = {
+    #Karta;      // Agent
+    #Karma;      // Patient
+    #Karana;     // Instrument
+    #Sampradana; // Recipient
+    #Apadana;    // Source
+    #Adhikarana; // Locus
+  };
+
+  public type GridSignal = {
+    id : Text;
+    source : Principal;
+    dhatu : Text;
+    karaka : SanprotoKaraka;
+    payload : Text;
+    voltage : Float;
+    timestamp : Int;
+  };
+
+  stable var sanprotoSignals : [GridSignal] = [];
+  transient var sanprotoBuffer : Buffer.Buffer<GridSignal> = Buffer.Buffer<GridSignal>(128);
+
+  // Receive signals from grid (listen-only, cannot respond in SanProto)
+  public shared(msg) func receiveSanprotoSignal(signal : GridSignal) : async () {
+    sanprotoBuffer.add(signal);
+    // Process based on dhātu
+    switch (signal.dhatu) {
+      case "ज्ञा" { /* jñā - know: trigger cognition */ };
+      case "धृ" { /* dhṛ - hold: memory persistence */ };
+      case "श्रु" { /* śru - hear: input processing */ };
+      case _ {};
+    };
+  };
+
+  public query func getSanprotoSignals() : async [GridSignal] {
+    Buffer.toArray(sanprotoBuffer)
+  };
+
+  // ══════════════════════════════════════════════════════════════════
   //  CPL RUNTIME WIRING — The Permanent Foundation
   // ══════════════════════════════════════════════════════════════════
   stable var cplRuntimeCanisterId : ?Principal = null;

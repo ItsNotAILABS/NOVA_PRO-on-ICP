@@ -56,6 +56,45 @@ import Time "mo:base/Time";
 persistent actor CPL_Runtime {
 
   // ══════════════════════════════════════════════════════════════════
+  //  SANSKRIT PROTO WIRING — Foundation Layer (LISTEN ONLY)
+  // ══════════════════════════════════════════════════════════════════
+  //  CPL Runtime can UNDERSTAND Sanskrit Proto signals but cannot SPEAK
+  //
+
+  public type SanprotoKaraka = {
+    #Karta; #Karma; #Karana; #Sampradana; #Apadana; #Adhikarana;
+  };
+
+  public type GridSignal = {
+    id : Text;
+    source : Principal;
+    dhatu : Text;
+    karaka : SanprotoKaraka;
+    payload : Text;
+    voltage : Float;
+    timestamp : Int;
+  };
+
+  stable var sanprotoSignals : [GridSignal] = [];
+  transient var sanprotoBuffer : Buffer.Buffer<GridSignal> = Buffer.Buffer<GridSignal>(256);
+
+  public shared(msg) func receiveSanprotoSignal(signal : GridSignal) : async () {
+    sanprotoBuffer.add(signal);
+    // Route to appropriate doctrine/protocol based on dhātu
+    switch (signal.dhatu) {
+      case "कृ" { /* kṛ - do: action execution */ };
+      case "भू" { /* bhū - be: state change */ };
+      case "गम्" { /* gam - go: transfer/movement */ };
+      case "दा" { /* dā - give: emit signal */ };
+      case _ {};
+    };
+  };
+
+  public query func getSanprotoSignals() : async [GridSignal] {
+    Buffer.toArray(sanprotoBuffer)
+  };
+
+  // ══════════════════════════════════════════════════════════════════
   //  GOLDEN CONSTANTS
   // ══════════════════════════════════════════════════════════════════
 

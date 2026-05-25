@@ -313,6 +313,14 @@
       "type": "rust",
       "candid": "src/organisms/ssn_gov/ssn_gov.did",
       "package": "ssn_gov"
+    },
+    "sanskrit_proto": {
+      "main": "src/organisms/sanskrit_proto/main.mo",
+      "type": "motoko"
+    },
+    "sanproto_grid": {
+      "main": "src/organisms/sanproto_grid/main.mo",
+      "type": "motoko"
     }
   }
 }
