@@ -1,17 +1,41 @@
 ///
-/// SANSKRIT PROTO — Foundation Layer for All Cognitive Languages
+/// SANSKRIT PROTO — NOVA's Own Protocol Foundation Language
+///
+/// Proto = Protocol. This is NOVA's OWN symbolic language.
+/// Inspired by Sanskrit's precise grammatical structure, but with
+/// NOVA's own symbols and meanings.
 ///
 /// The two SanProto speakers: sanskrit_proto + sanproto_grid
 /// Only these two can SPEAK Sanskrit Proto to each other.
 /// All other organisms can LISTEN/UNDERSTAND but cannot speak.
 ///
-/// Grid/Wiring Architecture — Like electrical circuits:
-///   - Dhātu (धातु) = Root primitives = Voltage sources
-///   - Pratyaya (प्रत्यय) = Suffixes = Resistors/Transformers  
-///   - Kāraka (कारक) = Semantic roles = Circuit pathways
-///   - Vibhakti (विभक्ति) = Case endings = Wire connections
+/// NOVA SANSKRIT PROTO SYMBOLS:
 ///
-/// Panini's grammar IS the formal specification.
+///   ◈ (dhātu)     = Root primitive (voltage source)
+///   ⟁ (karaka)    = Semantic role (circuit pathway)
+///   ⧫ (vibhakti)  = Case ending (wire connection)
+///   ⟐ (pratyaya)  = Suffix (transformer)
+///   ◉ (pada)      = Word unit (complete signal)
+///   ⟰ (vākya)     = Sentence (complete circuit)
+///
+/// NOVA DHĀTU ROOTS (◈):
+///
+///   ◈भू  = existence/becoming      → state operations
+///   ◈कृ  = action/creation         → execution operations
+///   ◈गम् = movement/transfer       → data flow
+///   ◈स्था = standing/persistence   → memory operations
+///   ◈दा  = giving/emission         → output operations
+///   ◈ग्र  = grasping/receiving     → input operations
+///   ◈वद् = speaking/declaring      → protocol messages
+///   ◈श्रु = hearing/listening      → signal reception
+///   ◈ज्ञा = knowing/cognition      → intelligence operations
+///   ◈धृ  = holding/maintaining     → state persistence
+///
+/// Grid/Wiring Architecture — Like electrical circuits:
+///   - Dhātu (◈) = Voltage sources
+///   - Pratyaya (⟐) = Resistors/Transformers  
+///   - Kāraka (⟁) = Circuit pathways
+///   - Vibhakti (⧫) = Wire connections
 ///
 
 import Array "mo:base/Array";
@@ -54,81 +78,105 @@ persistent actor SanskritProto {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  DHĀTU (धातु) — ROOT PRIMITIVES — The Voltage Sources
+  //  ◈ DHĀTU — NOVA ROOT PRIMITIVES — Voltage Sources
   // ══════════════════════════════════════════════════════════════════
   //
-  //  These are the irreducible functional primitives.
-  //  Every cognitive operation maps to a dhātu.
+  //  NOVA's own irreducible functional primitives.
+  //  Symbol: ◈ (diamond with dot)
+  //
+  //  ◈BHU  = existence/becoming      [PHI³]
+  //  ◈KRI  = action/creation         [PHI³]
+  //  ◈GAM  = movement/transfer       [PHI²]
+  //  ◈STHA = standing/persistence    [PHI²]
+  //  ◈DA   = giving/emission         [PHI²]
+  //  ◈GRA  = grasping/receiving      [PHI²]
+  //  ◈VAD  = speaking/declaring      [PHI]
+  //  ◈SHRU = hearing/listening       [PHI]
+  //  ◈JNA  = knowing/cognition       [PHI³]
+  //  ◈DHRI = holding/maintaining     [PHI²]
   //
 
   public type Dhatu = {
-    id : Text;           // e.g., "भू" (bhū)
-    meaning : Text;      // "to be, to become"
-    gana : Nat;          // verb class (1-10)
-    pada : Text;         // parasmaipada / ātmanepada
+    id : Text;           // NOVA symbol: "◈BHU", "◈KRI", etc.
+    root : Text;         // Sanskrit inspiration: "भू", "कृ"
+    meaning : Text;      // NOVA meaning
+    voltage : Nat;       // Power level (1-4, maps to PHI^n)
+    direction : Text;    // "in" | "out" | "internal" | "bidirectional"
     phiWeight : Float;   // φ-weighted importance
   };
 
-  // The 10 root dhātus that underpin all organism operations
+  // The 10 NOVA dhātu roots
   stable var dhatuRoots : [(Text, Dhatu)] = [];
   transient var dhatuMap : HashMap.HashMap<Text, Dhatu> = HashMap.HashMap<Text, Dhatu>(
     32, Text.equal, Text.hash
   );
 
   // ══════════════════════════════════════════════════════════════════
-  //  KĀRAKA (कारक) — SEMANTIC ROLES — The Circuit Pathways
+  //  ⟁ KĀRAKA — NOVA SEMANTIC ROLES — Circuit Pathways
   // ══════════════════════════════════════════════════════════════════
   //
-  //  Panini's 6 kārakas define WHO does WHAT to WHOM.
-  //  These are the wires connecting organisms.
+  //  NOVA's 6 pathway types. Symbol: ⟁ (triangle)
+  //  WHO does WHAT to WHOM through WHERE.
   //
 
   public type Karaka = {
-    #Karta;      // Agent (कर्ता) — who performs
-    #Karma;      // Patient (कर्म) — what is affected
-    #Karana;     // Instrument (करण) — by what means
-    #Sampradana; // Recipient (सम्प्रदान) — for whom
-    #Apadana;    // Source (अपादान) — from where
-    #Adhikarana; // Locus (अधिकरण) — where/when
+    #Agent;      // ⟁A — who performs the action
+    #Patient;    // ⟁P — what is affected
+    #Instrument; // ⟁I — by what means
+    #Recipient;  // ⟁R — for whom / destination
+    #Source;     // ⟁S — from where / origin
+    #Locus;      // ⟁L — where/when / context
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  VIBHAKTI (विभक्ति) — CASE ENDINGS — Wire Connections
+  //  ⧫ VIBHAKTI — NOVA CASE MARKERS — Wire Connections
   // ══════════════════════════════════════════════════════════════════
+  //
+  //  NOVA's 8 connection types. Symbol: ⧫ (diamond)
+  //
 
   public type Vibhakti = {
-    #Prathama;   // Nominative (1st) — subject
-    #Dvitiya;    // Accusative (2nd) — object
-    #Tritiya;    // Instrumental (3rd) — by/with
-    #Chaturthi;  // Dative (4th) — for/to
-    #Panchami;   // Ablative (5th) — from
-    #Shashthi;   // Genitive (6th) — of/possession
-    #Saptami;    // Locative (7th) — in/on/at
+    #Subject;    // ⧫1 — the actor
+    #Object;     // ⧫2 — the target
+    #Means;      // ⧫3 — the tool/method
+    #Purpose;    // ⧫4 — the goal/reason
+    #Origin;     // ⧫5 — the source
+    #Possession; // ⧫6 — ownership/relation
+    #Location;   // ⧫7 — place/time/state
+    #Address;    // ⧫8 — direct invocation
     #Sambodhana; // Vocative (8th) — address
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  PADA (पद) — WORD UNIT — A Complete Signal
+  //  ◉ PADA — NOVA WORD UNIT — Complete Signal Packet
   // ══════════════════════════════════════════════════════════════════
+  //
+  //  Symbol: ◉ (circled dot)
+  //  A complete signal packet ready for transmission.
+  //
 
   public type Pada = {
-    dhatu : Text;           // root
-    pratyaya : [Text];      // suffixes applied
-    vibhakti : Vibhakti;    // case
-    vacana : Nat;           // number (1=singular, 2=dual, 3=plural)
-    purusha : Nat;          // person (1=third, 2=second, 3=first)
+    dhatu : Text;           // ◈ root primitive
+    pratyaya : [Text];      // ⟐ suffixes/transformers applied
+    vibhakti : Vibhakti;    // ⧫ wire connection type
+    multiplicity : Nat;     // 1=single, 2=pair, 3=many
+    priority : Nat;         // 1=low, 2=normal, 3=high, 4=critical
     meaning : Text;         // derived meaning
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  VĀKYA (वाक्य) — SENTENCE — A Complete Circuit
+  //  ⟰ VĀKYA — NOVA SENTENCE — Complete Circuit
   // ══════════════════════════════════════════════════════════════════
+  //
+  //  Symbol: ⟰ (rising arrow)
+  //  A complete circuit connecting multiple organisms.
+  //
 
   public type Vakya = {
     id : Text;
-    padas : [Pada];
-    kartas : [Text];        // agent organism IDs
-    karmas : [Text];        // patient organism IDs  
+    padas : [Pada];         // ◉ signal packets
+    agents : [Text];        // ⟁A organisms performing
+    patients : [Text];      // ⟁P organisms affected
     timestamp : Int;
     phiWeight : Float;
   };
@@ -137,7 +185,7 @@ persistent actor SanskritProto {
   transient var vakyaBuffer : Buffer.Buffer<Vakya> = Buffer.Buffer<Vakya>(256);
 
   // ══════════════════════════════════════════════════════════════════
-  //  GRID SIGNAL — Message on the Wire
+  //  ⚡ GRID SIGNAL — Message on the Wire
   // ══════════════════════════════════════════════════════════════════
 
   public type GridSignal = {
@@ -170,39 +218,39 @@ persistent actor SanskritProto {
   );
 
   // ══════════════════════════════════════════════════════════════════
-  //  INITIALIZATION — Seed the 10 Core Dhātus
+  //  INITIALIZATION — Seed the 10 NOVA Dhātu Roots
   // ══════════════════════════════════════════════════════════════════
 
   public func initialize() : async () {
-    // भू (bhū) — to be, become — existence operations
-    registerDhatu({ id = "भू"; meaning = "to be, become"; gana = 1; pada = "parasmaipada"; phiWeight = PHI3 });
+    // ◈BHU — existence/becoming — state operations
+    registerDhatu({ id = "◈BHU"; root = "भू"; meaning = "existence, becoming, state change"; voltage = 3; direction = "internal"; phiWeight = PHI3 });
     
-    // कृ (kṛ) — to do, make — action operations
-    registerDhatu({ id = "कृ"; meaning = "to do, make"; gana = 8; pada = "ubhayapada"; phiWeight = PHI3 });
+    // ◈KRI — action/creation — execution operations
+    registerDhatu({ id = "◈KRI"; root = "कृ"; meaning = "action, creation, execution"; voltage = 3; direction = "out"; phiWeight = PHI3 });
     
-    // गम् (gam) — to go — movement/transfer operations
-    registerDhatu({ id = "गम्"; meaning = "to go"; gana = 1; pada = "parasmaipada"; phiWeight = PHI2 });
+    // ◈GAM — movement/transfer — data flow operations
+    registerDhatu({ id = "◈GAM"; root = "गम्"; meaning = "movement, transfer, data flow"; voltage = 2; direction = "bidirectional"; phiWeight = PHI2 });
     
-    // स्था (sthā) — to stand — state persistence
-    registerDhatu({ id = "स्था"; meaning = "to stand, remain"; gana = 1; pada = "parasmaipada"; phiWeight = PHI2 });
+    // ◈STHA — standing/persistence — memory operations
+    registerDhatu({ id = "◈STHA"; root = "स्था"; meaning = "standing, persistence, stability"; voltage = 2; direction = "internal"; phiWeight = PHI2 });
     
-    // दा (dā) — to give — transfer/emit operations
-    registerDhatu({ id = "दा"; meaning = "to give"; gana = 3; pada = "parasmaipada"; phiWeight = PHI2 });
+    // ◈DA — giving/emission — output operations
+    registerDhatu({ id = "◈DA"; root = "दा"; meaning = "giving, emission, output"; voltage = 2; direction = "out"; phiWeight = PHI2 });
     
-    // ग्रह् (grah) — to grasp — receive/capture operations
-    registerDhatu({ id = "ग्रह्"; meaning = "to grasp, receive"; gana = 9; pada = "ubhayapada"; phiWeight = PHI2 });
+    // ◈GRA — grasping/receiving — input operations
+    registerDhatu({ id = "◈GRA"; root = "ग्रह्"; meaning = "grasping, receiving, input"; voltage = 2; direction = "in"; phiWeight = PHI2 });
     
-    // वद् (vad) — to speak — communication operations
-    registerDhatu({ id = "वद्"; meaning = "to speak"; gana = 1; pada = "parasmaipada"; phiWeight = PHI });
+    // ◈VAD — speaking/declaring — protocol messages
+    registerDhatu({ id = "◈VAD"; root = "वद्"; meaning = "speaking, declaring, protocol"; voltage = 1; direction = "out"; phiWeight = PHI });
     
-    // श्रु (śru) — to hear — listen/receive operations  
-    registerDhatu({ id = "श्रु"; meaning = "to hear"; gana = 5; pada = "parasmaipada"; phiWeight = PHI });
+    // ◈SHRU — hearing/listening — signal reception
+    registerDhatu({ id = "◈SHRU"; root = "श्रु"; meaning = "hearing, listening, reception"; voltage = 1; direction = "in"; phiWeight = PHI });
     
-    // ज्ञा (jñā) — to know — cognition operations
-    registerDhatu({ id = "ज्ञा"; meaning = "to know"; gana = 9; pada = "parasmaipada"; phiWeight = PHI3 });
+    // ◈JNA — knowing/cognition — intelligence operations
+    registerDhatu({ id = "◈JNA"; root = "ज्ञा"; meaning = "knowing, cognition, intelligence"; voltage = 3; direction = "internal"; phiWeight = PHI3 });
     
-    // धृ (dhṛ) — to hold — memory/persistence operations
-    registerDhatu({ id = "धृ"; meaning = "to hold, maintain"; gana = 1; pada = "ubhayapada"; phiWeight = PHI2 });
+    // ◈DHRI — holding/maintaining — state persistence
+    registerDhatu({ id = "◈DHRI"; root = "धृ"; meaning = "holding, maintaining, persistence"; voltage = 2; direction = "internal"; phiWeight = PHI2 });
   };
 
   func registerDhatu(d : Dhatu) : () {
@@ -210,7 +258,7 @@ persistent actor SanskritProto {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SPEAK — Only callable by twin speaker (sanproto_grid)
+  //  ⚡ SPEAK — Only callable by twin speaker (sanproto_grid)
   // ══════════════════════════════════════════════════════════════════
 
   public shared(msg) func speak(signal : GridSignal) : async Result.Result<(), Text> {
@@ -223,12 +271,12 @@ persistent actor SanskritProto {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  EMIT — Internal: Generate signal TO grid
+  //  ⚡ EMIT — Internal: Generate signal TO grid
   // ══════════════════════════════════════════════════════════════════
 
   public func emit(dhatu : Text, karaka : Karaka, payload : Text) : async Result.Result<Text, Text> {
     let signal : GridSignal = {
-      id = "SIG-" # Nat.toText(signalBuffer.size());
+      id = "⚡" # Nat.toText(signalBuffer.size());
       source = Principal.fromActor(SanskritProto);
       dhatu = dhatu;
       karaka = karaka;
