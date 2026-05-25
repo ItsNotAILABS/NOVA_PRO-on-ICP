@@ -101,7 +101,7 @@ export class FibonacciHashChain {
   }
 
   private async hash(data: Uint8Array): Promise<Uint8Array> {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
     return new Uint8Array(hashBuffer);
   }
 }
@@ -138,7 +138,7 @@ export async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt.buffer as ArrayBuffer,
       iterations,
       hash: KEY_DERIVATION_PARAMS.hashAlgorithm,
     },
@@ -187,9 +187,9 @@ export async function decryptData(
   iv: Uint8Array,
 ): Promise<string> {
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
     key,
-    ciphertext,
+    ciphertext.buffer as ArrayBuffer,
   );
 
   return new TextDecoder().decode(decrypted);
