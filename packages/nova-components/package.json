@@ -1,0 +1,45 @@
+{
+  "name": "@nova-protocol/nova-components",
+  "version": "1.0.0",
+  "description": "NOVA Platform — Lit Web Components with φ-mathematics layouts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./elements/*": {
+      "import": "./dist/elements/*.js",
+      "types": "./dist/elements/*.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "lit": "^3.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "lit",
+    "web-components",
+    "nova",
+    "phi",
+    "golden-ratio",
+    "fibonacci",
+    "canister",
+    "icp"
+  ],
+  "author": "Casa de Medina",
+  "license": "SEE LICENSE IN LICENSE.md"
+}

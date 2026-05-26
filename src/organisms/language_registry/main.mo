@@ -47,7 +47,10 @@ persistent actor LanguageRegistry {
   // ══════════════════════════════════════════════════════════════════
 
   public func initialize() : async () {
-    // Register all 40 languages
+    // FOUNDATION FIRST — Sanskrit Proto underpins everything
+    await registerSanskritStack();
+    
+    // Then the 40 cognitive languages
     await registerCoreStack();
     await registerMindStack();
     await registerSocialStack();
@@ -179,6 +182,34 @@ persistent actor LanguageRegistry {
   func registerMetaStack() : async () {
     registerLanguage({ id = "LML"; name = "Language Meta Language"; stack = "meta"; version = "1.0.0"; phiWeight = 4.236; fibonacciRank = 13; dimension = 3; canisterId = "cpl_runtime"; registered = Time.now(); });
     registerLanguage({ id = "UEL"; name = "Universe Evolution Language"; stack = "meta"; version = "1.0.0"; phiWeight = 4.236; fibonacciRank = 13; dimension = 4; canisterId = "cpl_runtime"; registered = Time.now(); });
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  SANSKRIT PROTO FOUNDATION STACK — Underpins ALL languages
+  // ══════════════════════════════════════════════════════════════════
+  //
+  //  Only 2 speakers: sanskrit_proto + sanproto_grid
+  //  All other organisms LISTEN but cannot SPEAK
+  //
+
+  func registerSanskritStack() : async () {
+    // SKT-D: Dhātu Language — Root primitives (voltage sources)
+    registerLanguage({ id = "SKT-D"; name = "Dhātu Root Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 6.854; fibonacciRank = 21; dimension = 0; canisterId = "sanskrit_proto"; registered = Time.now(); });
+    
+    // SKT-K: Kāraka Language — Semantic roles (circuit pathways)
+    registerLanguage({ id = "SKT-K"; name = "Kāraka Role Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 6.854; fibonacciRank = 21; dimension = 0; canisterId = "sanskrit_proto"; registered = Time.now(); });
+    
+    // SKT-V: Vibhakti Language — Case endings (wire connections)
+    registerLanguage({ id = "SKT-V"; name = "Vibhakti Case Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 4.236; fibonacciRank = 13; dimension = 0; canisterId = "sanskrit_proto"; registered = Time.now(); });
+    
+    // SKT-G: Grid Language — Wiring infrastructure
+    registerLanguage({ id = "SKT-G"; name = "Grid Wiring Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 6.854; fibonacciRank = 21; dimension = 0; canisterId = "sanproto_grid"; registered = Time.now(); });
+    
+    // SKT-P: Prāṇa Language — Life force / energy flow
+    registerLanguage({ id = "SKT-P"; name = "Prāṇa Energy Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 4.236; fibonacciRank = 13; dimension = 4; canisterId = "sanskrit_proto"; registered = Time.now(); });
+    
+    // SKT-C: Citta Language — Mind/consciousness substrate
+    registerLanguage({ id = "SKT-C"; name = "Citta Consciousness Language"; stack = "sanskrit"; version = "1.0.0"; phiWeight = 4.236; fibonacciRank = 13; dimension = 4; canisterId = "sanskrit_proto"; registered = Time.now(); });
   };
 
   // ══════════════════════════════════════════════════════════════════
