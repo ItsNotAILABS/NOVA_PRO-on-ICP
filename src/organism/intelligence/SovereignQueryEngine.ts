@@ -233,8 +233,8 @@ export class SovereignQueryEngine {
           label: 'Lotka-Volterra Dominance',
           value: this.lv.dominanceRatio(),
           formula: 'dx/dt = r·x·(1−x/K) − α·x·y',
-          insight: lvState.x > lvState.y
-            ? `Expansion (x=${lvState.x.toFixed(3)}) outpaces threat (y=${lvState.y.toFixed(3)}).`
+          insight: lvState.expansionPressure > lvState.threatPressure
+            ? `Expansion (x=${lvState.expansionPressure.toFixed(3)}) outpaces threat (y=${lvState.threatPressure.toFixed(3)}).`
             : `Threat pressure elevated — dominance ratio ${this.lv.dominanceRatio().toFixed(3)}.`,
         };
       }
