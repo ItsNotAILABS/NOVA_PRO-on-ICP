@@ -36,6 +36,7 @@ import {
   CallRegistry,
   REGISTERED_CALLS,
   type RegisteredCall,
+  type CallCategory,
   type CallSearchQuery,
   type CallSearchResult,
   type CallChain,
@@ -117,6 +118,22 @@ export interface AIDiscoveryResult {
   readonly discoveryTimestamp: number;
 }
 
+/** Deterministic decision trace for sovereign call selection. */
+export interface AIDecisionTrace {
+  readonly stateMachine: readonly ['classify', 'score', 'rank', 'select'];
+  readonly taskDescription: string;
+  readonly normalizedTokens: readonly string[];
+  readonly inferredCategories: readonly CallCategory[];
+  readonly policyFlags: readonly string[];
+  readonly shortlistedCalls: readonly string[];
+}
+
+/** Ranked sovereign call selection result. */
+export interface AICallSelection {
+  readonly rankedResults: readonly CallSearchResult[];
+  readonly decisionTrace: AIDecisionTrace;
+}
+
 /** Developer SDK client configuration. */
 export interface DeveloperSDKConfig {
   readonly apiKey: string;
@@ -164,6 +181,156 @@ const SECURITY_ACCESS: Record<MarketSurface, readonly SecurityTier[]> = {
   'developer': ['public', 'authenticated', 'privileged'],
   'ai-native': ['public', 'authenticated', 'privileged'],
 };
+
+const STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'how', 'i',
+  'in', 'into', 'is', 'it', 'of', 'on', 'or', 'our', 'that', 'the', 'this',
+  'to', 'we', 'with',
+]);
+
+const CATEGORY_SIGNALS: Record<CallCategory, readonly string[]> = {
+  'orchestration': ['agent', 'coordinate', 'orchestrate', 'route', 'workflow'],
+  'web-intelligence': ['crawl', 'extract', 'fetch', 'index', 'scrape', 'web'],
+  'rendering': ['animate', 'compose', 'image', 'raster', 'render', 'scene'],
+  'data-structures': ['graph', 'index', 'query', 'spatial', 'stream', 'tree'],
+  'runtime': ['execute', 'latency', 'profile', 'runtime', 'sandbox', 'schedule'],
+  'model-operations': ['benchmark', 'evaluate', 'fusion', 'model', 'select', 'train'],
+  'market-operations': ['audit', 'balance', 'contract', 'market', 'price'],
+  'infrastructure': ['deploy', 'health', 'recover', 'scale', 'uptime'],
+};
+
+const LATENCY_PREFERENCE: Record<LatencyClass, number> = {
+  'realtime': 1.0,
+  'fast': 0.85,
+  'standard': 0.55,
+  'batch': 0.2,
+  'async': 0.1,
+};
+
+const COST_PREFERENCE: Record<CostClass, number> = {
+  'free': 1.0,
+  'micro': 0.8,
+  'standard': 0.55,
+  'premium': 0.2,
+  'enterprise': 0.1,
+};
+
+interface TaskSignals {
+  readonly tokens: readonly string[];
+  readonly inferredCategories: readonly CallCategory[];
+  readonly policyFlags: readonly string[];
+  readonly prefersLowLatency: boolean;
+  readonly prefersLowCost: boolean;
+  readonly prefersStreaming: boolean;
+  readonly prefersSecureRouting: boolean;
+  readonly requiresChaining: boolean;
+}
+
+function stemToken(token: string): string {
+  return token
+    .replace(/(ing|ers|ies|ied|ed|es|s)$/u, '')
+    .replace(/[^a-z0-9]/gu, '');
+}
+
+function tokenizeTask(taskDescription: string): readonly string[] {
+  return taskDescription
+    .toLowerCase()
+    .split(/[^a-z0-9]+/u)
+    .map(stemToken)
+    .filter(token => token.length >= 3 && !STOP_WORDS.has(token));
+}
+
+function inferCategories(tokens: readonly string[]): readonly CallCategory[] {
+  const tokenSet = new Set(tokens);
+  return (Object.entries(CATEGORY_SIGNALS) as [CallCategory, readonly string[]][])
+    .filter(([, signals]) => signals.some(signal => tokenSet.has(signal)))
+    .map(([category]) => category);
+}
+
+function extractTaskSignals(taskDescription: string): TaskSignals {
+  const tokens = tokenizeTask(taskDescription);
+  const lowered = taskDescription.toLowerCase();
+  const inferred = inferCategories(tokens);
+  const policyFlags = [
+    /(fast|instant|quick|real[- ]?time|urgent)/u.test(lowered) ? 'prefer-low-latency' : '',
+    /(cheap|budget|free|low[- ]?cost|minimal)/u.test(lowered) ? 'prefer-low-cost' : '',
+    /(stream|realtime output|incremental)/u.test(lowered) ? 'prefer-streaming' : '',
+    /(secure|sensitive|privileged|sovereign|private)/u.test(lowered) ? 'prefer-secure-routing' : '',
+    /(chain|pipeline|sequence|multi[- ]?step|workflow)/u.test(lowered) ? 'require-chaining' : '',
+  ].filter(Boolean);
+
+  return {
+    tokens,
+    inferredCategories: inferred,
+    policyFlags,
+    prefersLowLatency: policyFlags.includes('prefer-low-latency'),
+    prefersLowCost: policyFlags.includes('prefer-low-cost'),
+    prefersStreaming: policyFlags.includes('prefer-streaming'),
+    prefersSecureRouting: policyFlags.includes('prefer-secure-routing'),
+    requiresChaining: policyFlags.includes('require-chaining'),
+  };
+}
+
+function scoreCallForTask(call: RegisteredCall, signals: TaskSignals): CallSearchResult {
+  const haystack = [
+    call.callName,
+    call.agentName,
+    call.category,
+    call.metadata.description,
+    call.metadata.whenToUse,
+    ...call.tags,
+  ].join(' ').toLowerCase();
+
+  const matchedFields = new Set<string>();
+  let score = 0.75 + (call.metadata.reliabilityScore * PHI * 0.25);
+
+  const tokenMatches = signals.tokens.filter(token => haystack.includes(token));
+  if (tokenMatches.length > 0) {
+    score += Math.min(tokenMatches.length * 0.45, 2.25);
+    matchedFields.add('heuristic:keywords');
+  }
+
+  if (signals.inferredCategories.includes(call.category)) {
+    score += 1.4;
+    matchedFields.add('heuristic:category');
+  }
+
+  if (signals.prefersLowLatency) {
+    score += LATENCY_PREFERENCE[call.metadata.latencyClass];
+    matchedFields.add('heuristic:latency');
+  }
+
+  if (signals.prefersLowCost) {
+    score += COST_PREFERENCE[call.metadata.costClass];
+    matchedFields.add('heuristic:cost');
+  }
+
+  if (signals.prefersStreaming && call.metadata.streamable) {
+    score += 0.55;
+    matchedFields.add('heuristic:streaming');
+  }
+
+  if (signals.prefersSecureRouting) {
+    score += call.metadata.securityTier === 'privileged' ? 0.6 : 0.2;
+    matchedFields.add('heuristic:security');
+  }
+
+  if (signals.requiresChaining && call.metadata.allowedChainingTargets.length > 0) {
+    score += 0.45;
+    matchedFields.add('heuristic:chaining');
+  }
+
+  if (call.metadata.idempotent) {
+    score += 0.2;
+    matchedFields.add('heuristic:idempotent');
+  }
+
+  return {
+    call,
+    relevanceScore: Math.min(score / 7.5, 1.0),
+    matchedFields: [...matchedFields],
+  };
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  ENTERPRISE BUNDLES
@@ -519,11 +686,38 @@ export class AINativeCallMarket {
   /**
    * CHOOSE — Help an AI agent select the best call for its task.
    *
-   * Given a natural-language task description, returns the top-ranked
-   * calls sorted by relevance to the task.
+   * Uses a sovereign, deterministic classify → score → rank → select
+   * heuristic pipeline with no external LLM dependency.
    */
   choose(taskDescription: string, maxResults: number = 5): readonly CallSearchResult[] {
-    return this.registry.search({ text: taskDescription }).slice(0, maxResults);
+    return this.chooseWithTrace(taskDescription, maxResults).rankedResults;
+  }
+
+  /** Explain how the sovereign heuristic selected calls for a task. */
+  chooseWithTrace(taskDescription: string, maxResults: number = 5): AICallSelection {
+    const signals = extractTaskSignals(taskDescription);
+    const rankedResults = this.registry
+      .listAll()
+      .map(call => scoreCallForTask(call, signals))
+      .sort((a, b) => {
+        if (b.relevanceScore !== a.relevanceScore) {
+          return b.relevanceScore - a.relevanceScore;
+        }
+        return b.call.metadata.reliabilityScore - a.call.metadata.reliabilityScore;
+      })
+      .slice(0, maxResults);
+
+    return {
+      rankedResults,
+      decisionTrace: {
+        stateMachine: ['classify', 'score', 'rank', 'select'],
+        taskDescription,
+        normalizedTokens: signals.tokens,
+        inferredCategories: signals.inferredCategories,
+        policyFlags: signals.policyFlags,
+        shortlistedCalls: rankedResults.map(result => result.call.callName),
+      },
+    };
   }
 
   /**
@@ -650,9 +844,9 @@ export class AINativeCallMarket {
  *
  *   // AI-native surface
  *   const ai = market.aiNative;
- *   ai.registerAgent('gpt-4o', 'GPT-4o', 'premium');
+ *   ai.registerAgent('nova-alpha-01', 'Nova Sovereign Agent', 'premium');
  *   const discovery = ai.discover({ category: 'model-operations' });
- *   ai.invoke('gpt-4o', 'select_model', { task_description: '...', requirements: {} });
+ *   ai.invoke('nova-alpha-01', 'select_model', { task_description: '...', requirements: {} });
  */
 export class CallMarket {
   /** Surface 1: Internal Call Market */

@@ -103,6 +103,8 @@ export type {
   MarketInvocation,
   MarketInvocationResult,
   AIDiscoveryResult,
+  AIDecisionTrace,
+  AICallSelection,
   DeveloperSDKConfig,
   EnterpriseBundle,
 } from './CallMarket.js';
