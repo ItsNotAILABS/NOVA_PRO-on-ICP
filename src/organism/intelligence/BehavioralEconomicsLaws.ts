@@ -17,6 +17,9 @@ import { PHI, fibonacciHash, DimensionalPlane } from './ObserverIntelligence.js'
 void fibonacciHash;
 
 const PHI_INVERSE = 0.6180339887498948482;
+export const MEGA_LAW_HEARTBEAT_MS = 873;
+export const MEGA_LAW_ENTROPY_THRESHOLD = PHI_INVERSE;
+const MEGA_LAW_SOVEREIGNTY_FLOOR = 0.75;
 
 /**
  * Kahneman-Tversky loss aversion coefficient.
@@ -39,6 +42,191 @@ export const LEX_OECONOMIA_001 = {
   kahnemanWeight: LOSS_AVERSION_LAMBDA,
   immutable: true as const,
 } as const;
+
+export type MegaLawId =
+  | 'FC-001'
+  | 'AAF-002'
+  | 'DOP-003'
+  | 'MCP-004'
+  | 'ERI-005';
+
+export type MegaLawEnforcementRing =
+  | 'SENTINEL'
+  | 'ATLAS'
+  | 'PHANTOM'
+  | 'UMBRA'
+  | 'VIGILIA'
+  | 'MEMORIA'
+  | 'SOVEREIGN';
+
+export interface MegaLawAtlasEntry {
+  readonly id: MegaLawId;
+  readonly title: string;
+  readonly latinTitle: string;
+  readonly description: string;
+  readonly phiWeight: number;
+  readonly enforcementRings: readonly MegaLawEnforcementRing[];
+  readonly atlasRegistryId: string;
+  readonly synBinding: string;
+  readonly cplLBinding: string;
+  readonly heartbeatMs: number;
+  readonly heartbeatEnforced: boolean;
+}
+
+export interface MegaLawHeartbeatState {
+  readonly pulseMs: number;
+  readonly entropy: number;
+  readonly fieldCoherence: number;
+  readonly ancientFidelity: number;
+  readonly dimensionalAlignment: number;
+  readonly registerAtomicity: number;
+  readonly lawZeroIntegrity: number;
+  readonly geometricIntegrity: number;
+  readonly patternCompleteness: number;
+  readonly memoryPalaceIntegrity: number;
+  readonly lineageIntegrity: number;
+  readonly sovereignRatified: boolean;
+}
+
+export interface MegaLawHeartbeatStatus {
+  readonly lawId: MegaLawId;
+  readonly compliant: boolean;
+  readonly severity: 'stable' | 'warning' | 'critical';
+  readonly phiScore: number;
+  readonly actions: readonly string[];
+}
+
+export const MEGA_LAW_FC_001: MegaLawAtlasEntry = {
+  id: 'FC-001',
+  title: 'Law of Field Coherence',
+  latinTitle: 'Lex Cohærentiae Campi',
+  description: 'Maintain continuous geometric resonance with primordial mathematics, enforce the 873ms pulse, trigger SENTINEL recalibration on drift, and escalate when entropy exceeds φ⁻¹.',
+  phiWeight: Math.pow(PHI, 5),
+  enforcementRings: ['SENTINEL', 'ATLAS', 'SOVEREIGN'],
+  atlasRegistryId: 'atlas://mega-laws/fc-001',
+  synBinding: 'SYN::FIELD_COHERENCE',
+  cplLBinding: 'CPL-L::FC-001',
+  heartbeatMs: MEGA_LAW_HEARTBEAT_MS,
+  heartbeatEnforced: true,
+};
+
+export const MEGA_LAW_AAF_002: MegaLawAtlasEntry = {
+  id: 'AAF-002',
+  title: 'Law of Ancient Architectural Fidelity',
+  latinTitle: 'Lex Fidelitatis Architecturae Antiquae',
+  description: 'Anchor modern substrates to verified ancient mathematical forms and isolate phantom chains when fidelity drops below the sovereign floor.',
+  phiWeight: Math.pow(PHI, 4),
+  enforcementRings: ['ATLAS', 'PHANTOM', 'SOVEREIGN'],
+  atlasRegistryId: 'atlas://mega-laws/aaf-002',
+  synBinding: 'SYN::ANCIENT_FIDELITY',
+  cplLBinding: 'CPL-L::AAF-002',
+  heartbeatMs: MEGA_LAW_HEARTBEAT_MS,
+  heartbeatEnforced: true,
+};
+
+export const MEGA_LAW_DOP_003: MegaLawAtlasEntry = {
+  id: 'DOP-003',
+  title: 'Law of Dimensional Openness and Protection',
+  latinTitle: 'Lex Aperturae ac Praesidii Dimensionalis',
+  description: 'Defend periods of dimensional coherence through Geometric Key enforcement and UMBRA/VIGILIA shielding without sacrificing register atomicity or Law Zero.',
+  phiWeight: Math.pow(PHI, 3),
+  enforcementRings: ['UMBRA', 'VIGILIA', 'SOVEREIGN'],
+  atlasRegistryId: 'atlas://mega-laws/dop-003',
+  synBinding: 'SYN::DIMENSIONAL_OPENNESS',
+  cplLBinding: 'CPL-L::DOP-003',
+  heartbeatMs: MEGA_LAW_HEARTBEAT_MS,
+  heartbeatEnforced: true,
+};
+
+export const MEGA_LAW_MCP_004: MegaLawAtlasEntry = {
+  id: 'MCP-004',
+  title: 'Law of Mathematically Complete Processing',
+  latinTitle: 'Lex Processus Mathematici Completi',
+  description: 'Prefer low-entropy geometric completeness across synthesis and memory retrieval so intelligence operations stay fractal, harmonic, and low-load.',
+  phiWeight: Math.pow(PHI, 2),
+  enforcementRings: ['ATLAS', 'MEMORIA', 'SOVEREIGN'],
+  atlasRegistryId: 'atlas://mega-laws/mcp-004',
+  synBinding: 'SYN::COMPLETE_PROCESSING',
+  cplLBinding: 'CPL-L::MCP-004',
+  heartbeatMs: MEGA_LAW_HEARTBEAT_MS,
+  heartbeatEnforced: true,
+};
+
+export const MEGA_LAW_ERI_005: MegaLawAtlasEntry = {
+  id: 'ERI-005',
+  title: 'Law of Evolutionary Resonance Inheritance',
+  latinTitle: 'Lex Hæreditatis Resonantiae Evolutionariae',
+  description: 'Preserve phi-resonant lineage across divergence, tokenized organs, phantom chains, and sovereign-ring ratified evolution.',
+  phiWeight: PHI,
+  enforcementRings: ['ATLAS', 'PHANTOM', 'SOVEREIGN'],
+  atlasRegistryId: 'atlas://mega-laws/eri-005',
+  synBinding: 'SYN::RESONANCE_INHERITANCE',
+  cplLBinding: 'CPL-L::ERI-005',
+  heartbeatMs: MEGA_LAW_HEARTBEAT_MS,
+  heartbeatEnforced: true,
+};
+
+export const ALL_MEGA_LAWS = [
+  MEGA_LAW_FC_001,
+  MEGA_LAW_AAF_002,
+  MEGA_LAW_DOP_003,
+  MEGA_LAW_MCP_004,
+  MEGA_LAW_ERI_005,
+] as const;
+
+export const ATLAS_MEGA_LAW_REGISTRY = ALL_MEGA_LAWS;
+
+export function enforceMegaLawHeartbeat(state: MegaLawHeartbeatState): readonly MegaLawHeartbeatStatus[] {
+  const pulseDrift = Math.abs(state.pulseMs - MEGA_LAW_HEARTBEAT_MS) / MEGA_LAW_HEARTBEAT_MS;
+
+  return [
+    {
+      lawId: 'FC-001',
+      compliant: pulseDrift <= 0.05 && state.fieldCoherence >= MEGA_LAW_SOVEREIGNTY_FLOOR && state.entropy <= MEGA_LAW_ENTROPY_THRESHOLD,
+      severity: state.entropy > MEGA_LAW_ENTROPY_THRESHOLD ? 'critical' : pulseDrift > 0.05 ? 'warning' : 'stable',
+      phiScore: state.fieldCoherence * PHI,
+      actions: state.entropy > MEGA_LAW_ENTROPY_THRESHOLD
+        ? ['SENTINEL recalibration', 'human escalation', 'field lock audit']
+        : ['pulse maintained', 'field remains open'],
+    },
+    {
+      lawId: 'AAF-002',
+      compliant: state.ancientFidelity >= MEGA_LAW_SOVEREIGNTY_FLOOR,
+      severity: state.ancientFidelity < PHI_INVERSE ? 'critical' : state.ancientFidelity < MEGA_LAW_SOVEREIGNTY_FLOOR ? 'warning' : 'stable',
+      phiScore: state.ancientFidelity * Math.pow(PHI, 2),
+      actions: state.ancientFidelity < MEGA_LAW_SOVEREIGNTY_FLOOR
+        ? ['immutable log append', 'phantom chain isolation', 'atlas substrate review']
+        : ['ancestral substrate resonance verified'],
+    },
+    {
+      lawId: 'DOP-003',
+      compliant: state.dimensionalAlignment >= PHI_INVERSE && state.registerAtomicity >= MEGA_LAW_SOVEREIGNTY_FLOOR && state.lawZeroIntegrity >= MEGA_LAW_SOVEREIGNTY_FLOOR,
+      severity: state.registerAtomicity < MEGA_LAW_SOVEREIGNTY_FLOOR || state.lawZeroIntegrity < MEGA_LAW_SOVEREIGNTY_FLOOR ? 'critical' : state.dimensionalAlignment < PHI_INVERSE ? 'warning' : 'stable',
+      phiScore: state.dimensionalAlignment * PHI,
+      actions: state.dimensionalAlignment < PHI_INVERSE
+        ? ['activate UMBRA shield', 'activate VIGILIA scan', 'enforce Geometric Key boundary']
+        : ['dimensional window protected'],
+    },
+    {
+      lawId: 'MCP-004',
+      compliant: state.patternCompleteness >= PHI_INVERSE && state.memoryPalaceIntegrity >= PHI_INVERSE && state.geometricIntegrity >= PHI_INVERSE,
+      severity: state.patternCompleteness < 0.5 || state.memoryPalaceIntegrity < 0.5 ? 'critical' : state.patternCompleteness < PHI_INVERSE ? 'warning' : 'stable',
+      phiScore: (state.patternCompleteness + state.memoryPalaceIntegrity + state.geometricIntegrity) / 3 * PHI,
+      actions: state.patternCompleteness < PHI_INVERSE
+        ? ['promote phi-spiral primitives', 'downgrade high-entropy patterns', 'favor Memory Palace harmonic retrieval']
+        : ['complete-form preference maintained'],
+    },
+    {
+      lawId: 'ERI-005',
+      compliant: state.lineageIntegrity >= MEGA_LAW_SOVEREIGNTY_FLOOR && (state.sovereignRatified || state.lineageIntegrity >= PHI),
+      severity: !state.sovereignRatified && state.lineageIntegrity < MEGA_LAW_SOVEREIGNTY_FLOOR ? 'critical' : state.lineageIntegrity < MEGA_LAW_SOVEREIGNTY_FLOOR ? 'warning' : 'stable',
+      phiScore: state.lineageIntegrity * PHI,
+      actions: !state.sovereignRatified && state.lineageIntegrity < MEGA_LAW_SOVEREIGNTY_FLOOR
+        ? ['block divergence', 'require sovereign-ring phi vote', 'preserve phantom lineage ledger']
+        : ['lineage continuity preserved'],
+    },
+  ];
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  PROSPECT THEORY VALUE FUNCTION
@@ -438,6 +626,95 @@ export function computeL79(input: TemporalDiscountingInput): TemporalDiscounting
     hyperboleFactor,
     phiCorrectedValue,
     shortTermismIndex,
+  };
+}
+
+export function L72_RewardSignal(
+  input: Pick<RewardSignalInput, 'baseSignal' | 'dimensionalScalar'> &
+    Partial<Pick<RewardSignalInput, 'decayRate' | 'tick'>>,
+): {
+  readonly law: typeof LAW_L72_REWARD_SIGNAL;
+  readonly output: RewardSignalOutput & { readonly reward: number };
+} {
+  const output = computeL72({
+    baseSignal: input.baseSignal,
+    dimensionalScalar: input.dimensionalScalar,
+    decayRate: input.decayRate ?? 0,
+    tick: input.tick ?? 0,
+  });
+  return {
+    law: LAW_L72_REWARD_SIGNAL,
+    output: { ...output, reward: output.phiWeightedReward },
+  };
+}
+
+export function L73_DataRewardEquivalence(input: DataRewardInput): {
+  readonly law: typeof LAW_L73_DATA_REWARD_EQUIVALENCE;
+  readonly output: DataRewardOutput;
+} {
+  return { law: LAW_L73_DATA_REWARD_EQUIVALENCE, output: computeL73(input) };
+}
+
+export function L74_BehavioralAsymmetry(
+  input: Omit<BehavioralAsymmetryInput, 'referencePoint'> & Partial<Pick<BehavioralAsymmetryInput, 'referencePoint'>>,
+): {
+  readonly law: typeof LAW_L74_BEHAVIORAL_ASYMMETRY;
+  readonly output: BehavioralAsymmetryOutput;
+} {
+  return {
+    law: LAW_L74_BEHAVIORAL_ASYMMETRY,
+    output: computeL74({ ...input, referencePoint: input.referencePoint ?? 0.5 }),
+  };
+}
+
+export function L75_VariableEmergence(input: VariableEmergenceInput): {
+  readonly law: typeof LAW_L75_VARIABLE_EMERGENCE;
+  readonly output: VariableEmergenceOutput;
+} {
+  return { law: LAW_L75_VARIABLE_EMERGENCE, output: computeL75(input) };
+}
+
+export function L76_FlowState(
+  input: { readonly skill: number; readonly challenge: number },
+): {
+  readonly law: typeof LAW_L76_FLOW_STATE;
+  readonly output: FlowStateOutput & { readonly inFlow: boolean };
+} {
+  const output = computeL76({ challenge: input.challenge, capability: input.skill });
+  return {
+    law: LAW_L76_FLOW_STATE,
+    output: { ...output, inFlow: output.cognitiveState === 'flow' || output.cognitiveState === 'near-flow' },
+  };
+}
+
+export function L77_DriveCommitment(input: DriveCommitmentInput): {
+  readonly law: typeof LAW_L77_DRIVE_COMMITMENT;
+  readonly output: DriveCommitmentOutput;
+} {
+  return { law: LAW_L77_DRIVE_COMMITMENT, output: computeL77(input) };
+}
+
+export function L78_HormeticStress(input: HormeticStressInput): {
+  readonly law: typeof LAW_L78_HORMETIC_STRESS;
+  readonly output: HormeticStressOutput;
+} {
+  return { law: LAW_L78_HORMETIC_STRESS, output: computeL78(input) };
+}
+
+export function L79_TemporalDiscounting(
+  input: { readonly reward: number; readonly delay: number; readonly k: number },
+): {
+  readonly law: typeof LAW_L79_TEMPORAL_DISCOUNTING;
+  readonly output: TemporalDiscountingOutput;
+} {
+  return {
+    law: LAW_L79_TEMPORAL_DISCOUNTING,
+    output: computeL79({
+      futureReward: input.reward,
+      delayTicks: input.delay,
+      discountRate: input.k,
+      phiCorrection: true,
+    }),
   };
 }
 

@@ -48,6 +48,14 @@ const PHI_8 = Math.pow(PHI, 8);  // ~46.98
 const PHI_13 = Math.pow(PHI, 13); // ~521.0
 const PHI_21 = Math.pow(PHI, 21); // ~24,476 (close to 30,000)
 
+function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
 /** The sacred organism threshold */
 const ORGANISM_THRESHOLD = 30_000;
 
@@ -173,7 +181,10 @@ export interface TokenVelocityMetric {
 // ═══════════════════════════════════════════════════════════════════
 
 function createMicroEntity(index: number, role: MicroRole): MicroEntity {
-  const hash = fibonacciHash(`entity-${index}-${role}`);
+  const hash = fibonacciHash(
+    hashString(`entity-${index}-${role}`),
+    Number.MAX_SAFE_INTEGER,
+  );
   const phiSignature = Math.pow(PHI, (index % 21) + 1);
   
   return {

@@ -35,11 +35,15 @@ import {
   L77_DriveCommitment,
   L78_HormeticStress,
   L79_TemporalDiscounting,
+  ATLAS_MEGA_LAW_REGISTRY,
   LOSS_AVERSION_LAMBDA,
+  MEGA_LAW_ENTROPY_THRESHOLD,
+  MEGA_LAW_HEARTBEAT_MS,
+  enforceMegaLawHeartbeat,
 } from './BehavioralEconomicsLaws.js';
 import {
   KuramotoEngine,
-  SovereignScale,
+  SOVEREIGN_SCALES,
   SOVEREIGNTY_FLOOR,
   KURAMOTO_K,
 } from './FractalSovereignty.js';
@@ -119,8 +123,7 @@ export class SovereignQueryEngine {
 
   constructor() {
     // Seed the Kuramoto engine with one oscillator per scale
-    const scales = Object.values(SovereignScale) as SovereignScale[];
-    for (const scale of scales) {
+    for (const scale of SOVEREIGN_SCALES) {
       this.kuramoto.addOscillators(8, scale);
     }
     // Run a warm-up so the order parameter is meaningful from the first query
@@ -241,12 +244,32 @@ export class SovereignQueryEngine {
           lossSignal: p['loss'] ?? 1,
           gainSignal: p['gain'] ?? 1,
         });
+        const megaStatuses = enforceMegaLawHeartbeat({
+          pulseMs: p['pulseMs'] ?? MEGA_LAW_HEARTBEAT_MS,
+          entropy: p['entropy'] ?? 0.3,
+          fieldCoherence: p['fieldCoherence'] ?? 0.89,
+          ancientFidelity: p['ancientFidelity'] ?? 0.86,
+          dimensionalAlignment: p['dimensionalAlignment'] ?? 0.82,
+          registerAtomicity: p['registerAtomicity'] ?? 0.91,
+          lawZeroIntegrity: p['lawZeroIntegrity'] ?? 0.95,
+          geometricIntegrity: p['geometricIntegrity'] ?? 0.88,
+          patternCompleteness: p['patternCompleteness'] ?? 0.84,
+          memoryPalaceIntegrity: p['memoryPalaceIntegrity'] ?? 0.87,
+          lineageIntegrity: p['lineageIntegrity'] ?? 0.9,
+          sovereignRatified: (p['sovereignRatified'] ?? 1) >= 1,
+        });
+        const compliantMegaLaws = megaStatuses.filter(status => status.compliant).length;
+        const highestSeverity = megaStatuses.some(status => status.severity === 'critical')
+          ? 'critical'
+          : megaStatuses.some(status => status.severity === 'warning')
+            ? 'warning'
+            : 'stable';
         return {
           dimension: 'law',
-          label: 'Behavioral Asymmetry (L-74)',
+          label: 'Behavioral Asymmetry + MEGA Laws',
           value: res.output.lossResponse,
           formula: `lossResponse = lossSignal × λ(${LOSS_AVERSION_LAMBDA})`,
-          insight: `A loss of ${(p['loss'] ?? 1).toFixed(2)} feels like ${res.output.lossResponse.toFixed(2)} — losses hurt ${LOSS_AVERSION_LAMBDA}× more than equivalent gains.`,
+          insight: `A loss of ${(p['loss'] ?? 1).toFixed(2)} feels like ${res.output.lossResponse.toFixed(2)} — losses hurt ${LOSS_AVERSION_LAMBDA}× more than equivalent gains. MEGA laws compliant: ${compliantMegaLaws}/${ATLAS_MEGA_LAW_REGISTRY.length}; heartbeat entropy cap ${MEGA_LAW_ENTROPY_THRESHOLD.toFixed(3)}; status ${highestSeverity}.`,
         };
       }
 
@@ -443,6 +466,7 @@ export class SovereignQueryEngine {
       phiConstant: PHI,
       lossAversionLambda: LOSS_AVERSION_LAMBDA,
       kuramotoK: KURAMOTO_K,
+      megaLawCount: ATLAS_MEGA_LAW_REGISTRY.length,
     };
   }
 }

@@ -2,6 +2,7 @@ import { PHI, fibonacciHash, DimensionalPlane } from './ObserverIntelligence.js'
 
 const PHI_INVERSE = 0.6180339887498948482;
 const TWO_PI = 2 * Math.PI;
+export const KURAMOTO_K = PHI_INVERSE * 2;
 
 /**
  * THE FRACTAL SOVEREIGNTY FLOOR.
@@ -34,6 +35,7 @@ export const LEX_FRACTALIS_001 = {
 } as const;
 
 export type SovereignScale = 'cell' | 'organ' | 'organism' | 'empire';
+export const SOVEREIGN_SCALES = ['cell', 'organ', 'organism', 'empire'] as const;
 
 export interface SovereignNode {
   readonly id: string;
@@ -84,22 +86,34 @@ export class KuramotoEngine {
   /** Kuramoto coupling strength K. At K > Kc (critical) → spontaneous synchronization. */
   private readonly _K: number;
   private _phases: number[];
-  private _frequencies: readonly number[];
+  private _frequencies: number[];
   private _tick = 0;
 
-  constructor(n: number, couplingK = PHI_INVERSE * 2) {
+  constructor(n = 0, couplingK = KURAMOTO_K) {
     this._K = couplingK;
-    // Initialize phases on [0, 2π] using Fibonacci spacing (evenly distributed)
-    this._phases = Array.from({ length: n }, (_, i) =>
-      (fibonacciHash(i + 1, 10000) / 10000) * TWO_PI
-    );
-    // Natural frequencies: Gaussian-ish, mean 1.0, spread φ⁻¹
-    this._frequencies = Array.from({ length: n }, (_, i) =>
-      1.0 + (fibonacciHash(i + 100, 1000) / 1000 - 0.5) * PHI_INVERSE
-    );
+    this._phases = [];
+    this._frequencies = [];
+    if (n > 0) this.addOscillators(n);
   }
 
   get phases(): readonly number[] { return this._phases; }
+  get oscillatorCount(): number { return this._phases.length; }
+
+  addOscillators(count: number, scale?: SovereignScale): void {
+    const scaleBias =
+      scale === 'empire' ? PHI_INVERSE * 0.3 :
+      scale === 'organism' ? PHI_INVERSE * 0.2 :
+      scale === 'organ' ? PHI_INVERSE * 0.1 : 0;
+    const startIndex = this._phases.length;
+
+    for (let i = 0; i < count; i++) {
+      const index = startIndex + i + 1;
+      this._phases.push((fibonacciHash(index, 10000) / 10000) * TWO_PI);
+      this._frequencies.push(
+        1.0 + scaleBias + (fibonacciHash(index + 100, 1000) / 1000 - 0.5) * PHI_INVERSE,
+      );
+    }
+  }
 
   /**
    * Kuramoto model step (Euler integration).
@@ -108,6 +122,9 @@ export class KuramotoEngine {
   step(dt = 0.01): KuramotoState {
     this._tick++;
     const n = this._phases.length;
+    if (n === 0) {
+      return this.orderParameter();
+    }
     const newPhases = this._phases.map((theta_i, i) => {
       const omega_i = this._frequencies[i]!;
       let coupling = 0;
@@ -129,6 +146,15 @@ export class KuramotoEngine {
    */
   orderParameter(): KuramotoState {
     const n = this._phases.length;
+    if (n === 0) {
+      return {
+        R: 0,
+        meanPhase: 0,
+        synchronizedNodes: 0,
+        totalNodes: 0,
+        synchronizationStrength: 0,
+      };
+    }
     let sumSin = 0, sumCos = 0;
     for (const theta of this._phases) {
       sumSin += Math.sin(theta);
@@ -157,6 +183,20 @@ export class KuramotoEngine {
       state = this.step(dt);
     }
     return state;
+  }
+
+  /** Legacy compatibility alias. */
+  run(steps: number, dt = 0.01): KuramotoState {
+    return this.runFor(steps, dt);
+  }
+
+  /** Legacy compatibility alias with sovereignty floor projection. */
+  computeOrderParameter(): KuramotoState & { readonly sovereign: boolean } {
+    const state = this.orderParameter();
+    return {
+      ...state,
+      sovereign: state.R >= SOVEREIGNTY_FLOOR,
+    };
   }
 }
 

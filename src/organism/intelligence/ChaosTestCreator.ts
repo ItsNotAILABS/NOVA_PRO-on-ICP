@@ -35,6 +35,14 @@ const PHI_INVERSE = 0.6180339887498948482;
 const PHI_SQUARED = PHI * PHI;
 const PHI_CUBED = PHI * PHI * PHI;
 
+function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
 /** Key φ-power thresholds for organism intelligence */
 const PHI_THRESHOLDS = {
   DUNBAR: Math.round(Math.pow(PHI, 10.3)),        // ~150 - social cognitive limit
@@ -197,7 +205,10 @@ export class ChaosTestCreator {
 
   /** Generate unique test ID */
   private generateTestId(category: ChaosTestCategory): string {
-    const hash = fibonacciHash(`${category}-${this.testCounter}-${this.seed}`);
+    const hash = fibonacciHash(
+      hashString(`${category}-${this.testCounter}-${this.seed}`),
+      Number.MAX_SAFE_INTEGER,
+    );
     return `chaos-${category}-${hash.toString(16).slice(0, 8)}`;
   }
 
