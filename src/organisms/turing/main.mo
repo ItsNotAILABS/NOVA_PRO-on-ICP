@@ -271,6 +271,8 @@ persistent actor TURING {
       ("auto_market",    "silver", ["market", "auto"]),
       ("bronvox",        "bronze", ["base", "template"]),
       ("fluxton",        "silver", ["liquidity", "cycles"]),
+      ("alpha_orchestrator", "gold", ["orchestration", "dispatch", "lifecycle", "quorum", "alpha_routing"]),
+      ("alpha_conductor",    "gold", ["tempo", "sync", "dynamics", "ensemble", "coherence", "kuramoto"]),
     ];
     for ((name, tier, caps) in entries.vals()) {
       organisms.add({
