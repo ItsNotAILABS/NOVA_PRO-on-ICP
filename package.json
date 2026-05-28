@@ -33,7 +33,8 @@
     "build": "tsc",
     "build:organism": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "fix": "./scripts/nova fix"
   },
   "keywords": [
     "ai", "sdk", "agi", "nova", "sovereign", "desktop",
