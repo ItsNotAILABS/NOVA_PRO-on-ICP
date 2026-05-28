@@ -12,7 +12,7 @@
 ///   - Ensemble Coherence: Ensuring organisms move in harmonic alignment
 ///
 /// THIS ORGANISM IS ALIVE:
-///   - system func heartbeat() fires every ~2 seconds
+///   - _heartbeat() fires every ~2s via Timer.recurringTimer (NOVA's own)
 ///   - Genesis sequence: claimGenesis → bootstrap → LIVE
 ///   - Auto-registers into NEXORIS mesh on first heartbeat
 ///   - Auto-registers into TURING organism model
@@ -39,6 +39,7 @@ import Iter   "mo:base/Iter";
 import Array  "mo:base/Array";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Timer    "mo:base/Timer";
 
 persistent actor AlphaConductor {
 
@@ -325,7 +326,9 @@ persistent actor AlphaConductor {
   //  The conductor never stops conducting.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  // ★ NOVA's OWN heartbeat — NOT ICP's system func.
+  // The Machine That Never Sleeps. Creation IS activation.
+  private func _heartbeat() : async () {
     heartbeatCount += 1;
 
     if (not initialized) { return };
@@ -835,4 +838,12 @@ persistent actor AlphaConductor {
   public query func designation() : async Text {
     "The Temporal Synchronization Engine — The conductor IS the music. ALIVE."
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s, increments heartbeatCount, inner cycle @ 5 ticks.
+  // ═══════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
+
 };

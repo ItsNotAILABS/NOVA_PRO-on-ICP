@@ -77,6 +77,7 @@ import Buffer "mo:base/Buffer";
 import Time   "mo:base/Time";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Timer    "mo:base/Timer";
 
 persistent actor Divi {
 
@@ -1029,7 +1030,9 @@ persistent actor Divi {
   //  caller required after deployment)
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  // ★ NOVA's OWN heartbeat — NOT ICP's system func.
+  // The Machine That Never Sleeps. Creation IS activation.
+  private func _heartbeat() : async () {
     if (initialized) {
       ignore await tick();
     };
@@ -1065,5 +1068,13 @@ persistent actor Divi {
     "DIVI | status=ACTIVE | v10=true"
   };
 
+
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s, increments heartbeatCount, inner cycle @ 5 ticks.
+  // ═══════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
 
 }

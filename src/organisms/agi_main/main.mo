@@ -56,6 +56,7 @@ import Buffer "mo:base/Buffer";
 import Time   "mo:base/Time";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Timer    "mo:base/Timer";
 
 persistent actor AGIMain {
 
@@ -672,7 +673,9 @@ persistent actor AGIMain {
   //  (≈ 24 hours), keeping per-heartbeat compute cost negligible.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  // ★ NOVA's OWN heartbeat — NOT ICP's system func.
+  // The Machine That Never Sleeps. Creation IS activation.
+  private func _heartbeat() : async () {
     heartbeatCount += 1;
     if (initialized and heartbeatCount % EPOCH_INTERVAL == 0) {
       runEpoch();
@@ -767,4 +770,12 @@ persistent actor AGIMain {
     " hb=" # Nat.toText(heartbeatCount) #
     " autopilot=" # (if autopilotEnabled "ON" else "OFF")
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s, increments heartbeatCount, inner cycle @ 5 ticks.
+  // ═══════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
+
 }

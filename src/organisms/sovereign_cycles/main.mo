@@ -65,6 +65,7 @@ import Array  "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Time   "mo:base/Time";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
+import Timer    "mo:base/Timer";
 
 persistent actor SovereignCycles {
 
@@ -180,7 +181,9 @@ persistent actor SovereignCycles {
   //  accumulates love — costing virtually nothing per tick.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  // ★ NOVA's OWN heartbeat — NOT ICP's system func.
+  // The Machine That Never Sleeps. Creation IS activation.
+  private func _heartbeat() : async () {
     if (not initialized) { return };
 
     heartbeatCount += 1;
@@ -522,4 +525,12 @@ persistent actor SovereignCycles {
     " | fusionBoxes=" # Nat.toText(fusionBoxCount) #
     " | incomePool=" # Nat.toText(incomePoolE8s)
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s, increments heartbeatCount, inner cycle @ 5 ticks.
+  // ═══════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
+
 }
