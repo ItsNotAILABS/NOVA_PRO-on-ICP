@@ -1131,14 +1131,15 @@ persistent actor AutoMarket {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  HEARTBEAT — self-ticks every IC round on mainnet (no external
-  //  caller required after deployment)
+  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
+  //  autonomousTick() is callable on-demand. observe() advances lazily.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  public func observe() : async Text {
     if (initialized) {
       ignore await autonomousTick();
     };
+    "AUTO_MARKET | sovereign=true | heartbeat=NONE | timer=NONE"
   };
 
 

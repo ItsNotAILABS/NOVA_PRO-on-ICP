@@ -1066,15 +1066,15 @@ persistent actor NNSProxy {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  HEARTBEAT — self-ticks every IC round on mainnet so maturity
-  //  accrues and the 3-way generator cyc runs without any external
-  //  caller after deployment.
+  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
+  //  tick() is callable on-demand. observe() triggers lazy advancement.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  public func observe() : async Text {
     if (initialized) {
       ignore await tick();
     };
+    "NNS_PROXY | sovereign=true | heartbeat=NONE | timer=NONE"
   };
 
   // ══════════════════════════════════════════════════════════════════

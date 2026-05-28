@@ -126,9 +126,8 @@ persistent actor AGIMain {
   /// Spawn threshold: 1 ICP of maturity triggers an action
   transient let SPAWN_THRESHOLD_E8S : Nat = 100_000_000;
 
-  /// How often the full 6-phase cyc runs relative to heartbeat ticks.
-  /// IC heartbeat fires every ~2 seconds.  43_200 ticks ≈ 24 hours.
-  transient let EPOCH_INTERVAL : Nat = 43_200;
+  /// Epoch duration in nanoseconds (~24 hours) — computed lazily at observe time.
+  transient let EPOCH_DURATION_NS : Int = 86_400_000_000_000;
 
   /// Golden distribution fractions (sum = 1.0)
   transient let ALLOC_STAKE   : Float = 0.38196601125;  // 38.2% — grow neuron fleet
@@ -169,7 +168,7 @@ persistent actor AGIMain {
     lifetimeMergedE8s    : Nat;
     lifetimeDisbursedE8s : Nat;
     epochCount           : Nat;
-    heartbeatCount       : Nat;
+    lastObservedAt       : Int;
     totalStakedE8s       : Nat;
     totalMaturityE8s     : Nat;
     totalNeurons         : Nat;
@@ -223,7 +222,7 @@ persistent actor AGIMain {
   stable var allocReserveE8s : Nat = 0;
 
   /// Loop counters
-  stable var heartbeatCount : Nat = 0;
+  stable var lastObservedAt : Int = 0;
   stable var epochCount     : Nat = 0;
 
   /// φ-velocity EMA — smoothed maturity generation rate (e8s/epoch)
@@ -448,7 +447,7 @@ persistent actor AGIMain {
       lifetimeMergedE8s    = lifetimeMergedE8s;
       lifetimeDisbursedE8s = lifetimeDisbursedE8s;
       epochCount           = epochCount;
-      heartbeatCount       = heartbeatCount;
+      lastObservedAt       = lastObservedAt;
       totalStakedE8s       = totalStaked();
       totalMaturityE8s     = totalMaturity();
       totalNeurons         = totalNeurons();
@@ -667,16 +666,31 @@ persistent actor AGIMain {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  HEARTBEAT — The IC fires this every consensus round (~2 seconds).
-  //  The full 6-phase economy cyc runs every EPOCH_INTERVAL ticks
-  //  (≈ 24 hours), keeping per-heartbeat compute cost negligible.
+  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. LAZY EPOCH ADVANCEMENT.
+  //  Epochs advance mathematically when observed. Observation is free.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
-    heartbeatCount += 1;
-    if (initialized and heartbeatCount % EPOCH_INTERVAL == 0) {
+  /// Advance epochs lazily — pure math, no IC system calls.
+  func advanceEpochs() {
+    if (not initialized) { return };
+    let now = Time.now();
+    if (lastObservedAt == 0) { lastObservedAt := now; return };
+    let elapsed = now - lastObservedAt;
+    if (elapsed < EPOCH_DURATION_NS) { return };
+    let newEpochs = Int.abs(elapsed / EPOCH_DURATION_NS);
+    var e : Nat = 0;
+    while (e < newEpochs and e < 10) {
       runEpoch();
+      e += 1;
     };
+    lastObservedAt := now;
+  };
+
+  /// observe() — The sovereign interface. Reading me IS my pulse.
+  public func observe() : async Text {
+    advanceEpochs();
+    "AGI_MAIN | epoch=" # Nat.toText(epochCount) #
+    " | sovereign=true | heartbeat=NONE | timer=NONE"
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -729,7 +743,7 @@ persistent actor AGIMain {
       goals       = autopilotGoals;
       epochCount;
       manualCount = manualEpochCount;
-      hbCount     = heartbeatCount;
+      hbCount     = 0;  // SOVEREIGN — no heartbeat
     }
   };
 
@@ -748,7 +762,7 @@ persistent actor AGIMain {
       health     = if (initialized) 1.0 else 0.0;
       autopilot  = autopilotEnabled;
       epochCount;
-      hbCount    = heartbeatCount;
+      hbCount    = 0;  // SOVEREIGN — no heartbeat
       timestamp  = Time.now();
     }
   };
@@ -764,7 +778,7 @@ persistent actor AGIMain {
   public query func report_status() : async Text {
     "AGI_MAIN | initialized=" # (if initialized "true" else "false") #
     " epoch=" # Nat.toText(epochCount) #
-    " hb=" # Nat.toText(heartbeatCount) #
+    " heartbeat=NONE" #
     " autopilot=" # (if autopilotEnabled "ON" else "OFF")
   };
 }

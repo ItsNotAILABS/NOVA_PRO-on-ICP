@@ -354,16 +354,15 @@ persistent actor CEREBEX {
   public query func diag() : async DIE { runDiag() };
 
   // ══════════════════════════════════════════════════════════════════
-  //  HEARTBEAT — The Brain Keeps Thinking
+  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
+  //  diag() is computed at read-time. observe() advances lazily.
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
-    hbtCount += 1;
-    if (hbtCount % HBT_INTERVAL == 0) {
-      let d = runDiag();
-      diagLog.add(d);
-      while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
-    };
+  public func observe() : async DIE {
+    let d = runDiag();
+    diagLog.add(d);
+    while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
+    d
   };
 
 }
