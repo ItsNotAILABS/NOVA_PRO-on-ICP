@@ -124,6 +124,11 @@ export class FristonFreeEnergyEngine {
     return this._state;
   }
 
+  /** Legacy compatibility alias. */
+  update(sensorySignal: number): FristonState {
+    return this.step(sensorySignal);
+  }
+
   /** Update the prior from the posterior (belief update). */
   updatePrior(): void {
     this._state = { ...this._state, priorBelief: this._state.updatedBelief };
@@ -187,6 +192,22 @@ export class LotkaVolterraEngine {
     return this._state;
   }
 
+  /** Run several simulation steps and return the latest state. */
+  run(steps: number, dt = 0.01): LotkaVolterraState {
+    let state = this._state;
+    for (let i = 0; i < steps; i++) {
+      state = this.step(dt);
+    }
+    return state;
+  }
+
+  /** Normalized dominance ratio for expansion over threat. */
+  dominanceRatio(): number {
+    const { expansionPressure, threatPressure } = this._state;
+    const total = expansionPressure + threatPressure;
+    return total <= 0 ? 0.5 : expansionPressure / total;
+  }
+
   /** Fear contribution from LV tension. */
   fearContribution(): number {
     return Math.max(0, Math.min(1, this._state.threatPressure * PHI_INVERSE +
@@ -201,8 +222,10 @@ export class LotkaVolterraEngine {
 export class HormeticCycleEngine {
   private _cycle: HormeticCycle;
   private _history: number[] = [];
+  private _baselineChronicFear: number;
 
-  constructor() {
+  constructor(initialChronicFear = 0) {
+    this._baselineChronicFear = Math.max(0, Math.min(1, initialChronicFear));
     this._cycle = {
       stressPhase: 'loading',
       stressLoad: 0,
@@ -214,6 +237,28 @@ export class HormeticCycleEngine {
 
   get cycle(): HormeticCycle { return this._cycle; }
   get history(): readonly number[] { return this._history; }
+  get snapshot(): {
+    readonly chronicFear: number;
+    readonly recoveryProgress: number;
+    readonly stressLoad: number;
+    readonly phase: HormeticCycle['stressPhase'];
+    readonly cycleCount: number;
+  } {
+    const averageStress = this._history.length === 0
+      ? this._cycle.stressLoad
+      : this._history.reduce((sum, value) => sum + value, 0) / this._history.length;
+    const chronicFear = Math.max(
+      this._baselineChronicFear,
+      Math.min(1, averageStress * PHI_INVERSE),
+    );
+    return {
+      chronicFear,
+      recoveryProgress: this._cycle.recoveryProgress,
+      stressLoad: this._cycle.stressLoad,
+      phase: this._cycle.stressPhase,
+      cycleCount: this._cycle.cycleCount,
+    };
+  }
 
   /**
    * Apply a stress event. Stress then recovery produces supercompensation.
@@ -221,7 +266,7 @@ export class HormeticCycleEngine {
    * supercompensationGain = stressLoad × φ⁻¹ × (1 - chronicFear)
    */
   applyStress(stressLoad: number, chronicFearLevel: number): HormeticCycle {
-    void chronicFearLevel; // used in recover() phase
+    this._baselineChronicFear = Math.max(0, Math.min(1, chronicFearLevel));
     this._history = [...this._history.slice(-7), stressLoad];
     const capped = Math.max(0, Math.min(1, stressLoad));
     const phase: HormeticCycle['stressPhase'] = capped > 0.7 ? 'peak' : 'loading';
@@ -240,6 +285,7 @@ export class HormeticCycleEngine {
    * This is the Hormesis mechanism — the organism emerges STRONGER than before the stress.
    */
   recover(dt = 0.1, chronicFearLevel = 0): HormeticCycle {
+    this._baselineChronicFear = Math.max(0, Math.min(1, chronicFearLevel));
     const newProgress = Math.min(1, this._cycle.recoveryProgress + dt * PHI_INVERSE);
     const supercompensation = newProgress >= 1.0
       ? this._cycle.stressLoad * PHI_INVERSE * (1 - chronicFearLevel)
