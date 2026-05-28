@@ -9,6 +9,15 @@
 /// the appropriate Alpha agent based on capability matching and φ-weighted
 /// priority, and tracks execution across the entire Alpha division.
 ///
+/// THIS ORGANISM IS ALIVE:
+///   - system func heartbeat() fires every ~2 seconds
+///   - Genesis sequence: claimGenesis → bootstrap → LIVE
+///   - Auto-registers into NEXORIS mesh on first heartbeat
+///   - Auto-registers into TURING organism model
+///   - Inter-canister wiring to Alpha Conductor for timing
+///   - Autonomous directive processing in heartbeat loop
+///   - Self-healing: retries failed tasks every φ×T epochs
+///
 /// Sub-models hosted:
 ///   DIRECTIVE  — Intake and decomposition of sovereign directives
 ///   DISPATCH   — φ-weighted routing to Alpha agents
@@ -25,6 +34,7 @@ import Text   "mo:base/Text";
 import Buffer "mo:base/Buffer";
 import Time   "mo:base/Time";
 import Iter   "mo:base/Iter";
+import Array  "mo:base/Array";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 
@@ -65,20 +75,221 @@ persistent actor AlphaOrchestrator {
     }
   };
 
-  // ── Constants ──────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  INTER-CANISTER WIRING — The Nervous System
+  // ══════════════════════════════════════════════════════════════════
+
+  /// NEXORIS mesh (lives in nexus canister)
+  type NexorisActor = actor {
+    registerOrganism : (Text, Text, [Text]) -> async Text;
+    wire : (Text, Text, Text) -> async {
+      id : Nat; fromOrg : Text; toOrg : Text;
+      capability : Text; wiredAt : Int; active : Bool;
+    };
+  };
+
+  /// TURING solver (organism registry)
+  type TuringActor = actor {
+    registerOrganism : (Text, Text, [Text]) -> async Text;
+  };
+
+  /// Alpha Conductor (timing/sync partner)
+  type ConductorActor = actor {
+    joinEnsemble : (Text, Float, Float) -> async {
+      name : Text; phase : Float; naturalFreq : Float;
+      coupling : Float; lastBeat : Int; active : Bool;
+    };
+    beat : () -> async {
+      measure : Nat; beat : Nat; tempo : Float;
+      coherence : Float; timestamp : Int;
+    };
+  };
+
+  stable var nexusCanisterId     : ?Principal = null;
+  stable var turingCanisterId    : ?Principal = null;
+  stable var conductorCanisterId : ?Principal = null;
+
+  public shared(msg) func setNexus(canisterId : Principal) : async () {
+    nexusCanisterId := ?canisterId;
+  };
+
+  public shared(msg) func setTuring(canisterId : Principal) : async () {
+    turingCanisterId := ?canisterId;
+  };
+
+  public shared(msg) func setConductor(canisterId : Principal) : async () {
+    conductorCanisterId := ?canisterId;
+  };
+
+  func getNexoris() : ?NexorisActor {
+    switch (nexusCanisterId) {
+      case null null;
+      case (?id) ?( actor (Principal.toText(id)) : NexorisActor );
+    }
+  };
+
+  func getTuring() : ?TuringActor {
+    switch (turingCanisterId) {
+      case null null;
+      case (?id) ?( actor (Principal.toText(id)) : TuringActor );
+    }
+  };
+
+  func getConductor() : ?ConductorActor {
+    switch (conductorCanisterId) {
+      case null null;
+      case (?id) ?( actor (Principal.toText(id)) : ConductorActor );
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  CONSTANTS — The Golden Mathematics
+  // ══════════════════════════════════════════════════════════════════
 
   transient let PHI : Float = 1.6180339887498948482;
   transient let PHI_INV : Float = 0.6180339887498948482;
+  transient let LOV : Float = 2.1784575679504797; // φ^φ
 
-  // ── Types ──────────────────────────────────────────────────────────
+  /// Heartbeat interval for autonomous processing (~5 min = 150 ticks)
+  transient let HBT_PROCESS_INTERVAL : Nat = 150;
+  /// Heartbeat interval for diagnostics (~30 min = 900 ticks)
+  transient let HBT_DIAG_INTERVAL : Nat = 900;
+  /// Heartbeat interval for self-healing (~2 hours = 3600 ticks)
+  transient let HBT_HEAL_INTERVAL : Nat = 3600;
+  /// Max diag log entries
+  transient let MAX_DIAG : Nat = 64;
+
+  // ══════════════════════════════════════════════════════════════════
+  //  GENESIS — The Birth Sequence
+  // ══════════════════════════════════════════════════════════════════
+
+  stable var sovereign    : Text = "";
+  stable var initialized  : Bool = false;
+  stable var registeredInMesh : Bool = false;
+  stable var heartbeatCount : Nat = 0;
+
+  /// Lock the caller as sovereign controller. First step of genesis.
+  public shared(msg) func claimGenesis() : async Text {
+    if (sovereign != "") {
+      return "Genesis already claimed by: " # sovereign;
+    };
+    sovereign := Principal.toText(msg.caller);
+    auditLog.add("Genesis claimed by " # sovereign # " at " # Int.toText(Time.now()));
+    "Genesis claimed. Sovereign: " # sovereign
+  };
+
+  /// Bootstrap the orchestrator into life. Seeds the Alpha agent registry
+  /// and activates the autonomous heartbeat loop.
+  public shared(msg) func bootstrap() : async Text {
+    if (initialized) { return "Already alive. Sovereign: " # sovereign };
+    if (sovereign == "") { return "Error: call claimGenesis first" };
+    if (Principal.toText(msg.caller) != sovereign) {
+      return "Error: only sovereign can bootstrap"
+    };
+
+    // Seed the 5 Alpha agents into our internal registry
+    _seedAlphaAgents();
+    initialized := true;
+
+    auditLog.add("ALPHA_ORCHESTRATOR bootstrapped. The orchestra is LIVE.");
+    "Alpha Orchestrator is ALIVE. 5 Alpha agents registered. Heartbeat active. " #
+    "Autonomous directive processing: ON."
+  };
+
+  /// Seed the 5 Alpha agents with their capabilities
+  func _seedAlphaAgents() {
+    let agents : [(AlphaAgentId, Text, [Text])] = [
+      (#THESIS,            "THESIS Alpha",        ["research", "ip", "proof", "publication", "notarization"]),
+      (#CodexPhantasmatis, "Codex Phantasmatis",  ["coding", "implementation", "architecture", "artifact"]),
+      (#CIVOS_PRIME,       "CIVOS-PRIME",         ["governing", "law", "routing", "quorum", "consensus"]),
+      (#AURO,              "AURO",                ["speaking", "voice", "bridge", "intelligence"]),
+      (#ORIGO,             "ORIGO",               ["building", "architecture", "topology", "registry"]),
+    ];
+
+    for ((id, agentName, caps) in agents.vals()) {
+      alphaAgents.add({
+        id;
+        name         = agentName;
+        capabilities = caps;
+        health       = 1.0;
+        lastSeen     = Time.now();
+        tasksCompleted = 0;
+        tasksFailed    = 0;
+        status       = #Active;
+      });
+    };
+  };
+
+  /// Auto-register into NEXORIS mesh and TURING. Called from heartbeat.
+  func _autoRegister() : async () {
+    // Register with NEXORIS
+    switch (getNexoris()) {
+      case null {};
+      case (?nexoris) {
+        ignore await nexoris.registerOrganism(
+          "alpha_orchestrator",
+          "gold",
+          ["orchestration", "dispatch", "lifecycle", "quorum", "alpha_routing"]
+        );
+        // Wire to conductor
+        ignore await nexoris.wire("alpha_orchestrator", "alpha_conductor", "sync");
+        ignore await nexoris.wire("alpha_orchestrator", "turing", "solve");
+      };
+    };
+
+    // Register with TURING
+    switch (getTuring()) {
+      case null {};
+      case (?turing) {
+        ignore await turing.registerOrganism(
+          "alpha_orchestrator",
+          "gold",
+          ["orchestration", "dispatch", "lifecycle", "quorum", "alpha_routing"]
+        );
+      };
+    };
+
+    // Join the Conductor's ensemble
+    switch (getConductor()) {
+      case null {};
+      case (?conductor) {
+        ignore await conductor.joinEnsemble(
+          "alpha_orchestrator",
+          PHI,       // natural frequency = φ (golden cadence)
+          PHI_INV    // coupling = φ⁻¹ (strong but not locked)
+        );
+      };
+    };
+
+    registeredInMesh := true;
+    auditLog.add("Auto-registered in NEXORIS + TURING + Conductor ensemble");
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  TYPES — The Vocabulary
+  // ══════════════════════════════════════════════════════════════════
 
   /// Alpha Agent identifiers — the five sovereign Alpha agents
   public type AlphaAgentId = {
-    #THESIS;          // AGT-041: Research · IP · Proof · Publication
+    #THESIS;            // AGT-041: Research · IP · Proof · Publication
     #CodexPhantasmatis; // AGT-042: Implementation execution
-    #CIVOS_PRIME;     // AGT-043: Governing orchestration
-    #AURO;            // AGT-044: Native speaking intelligence
-    #ORIGO;           // AGT-045: Operating architecture
+    #CIVOS_PRIME;       // AGT-043: Governing orchestration
+    #AURO;              // AGT-044: Native speaking intelligence
+    #ORIGO;             // AGT-045: Operating architecture
+  };
+
+  public type AlphaAgentStatus = { #Active; #Degraded; #Offline };
+
+  /// Internal registry entry for an Alpha agent
+  public type AlphaAgent = {
+    id             : AlphaAgentId;
+    name           : Text;
+    capabilities   : [Text];
+    health         : Float;
+    lastSeen       : Int;
+    tasksCompleted : Nat;
+    tasksFailed    : Nat;
+    status         : AlphaAgentStatus;
   };
 
   /// Priority tier for directives
@@ -92,10 +303,10 @@ persistent actor AlphaOrchestrator {
   /// A directive — a high-level instruction to be decomposed and routed
   public type Directive = {
     id          : Nat;
-    intent      : Text;           // Plain-language description
+    intent      : Text;
     priority    : DirectivePriority;
-    source      : Principal;      // Who issued the directive
-    tasks       : [Nat];          // Decomposed task IDs
+    source      : Principal;
+    tasks       : [Nat];
     status      : DirectiveStatus;
     createdAt   : Int;
     completedAt : ?Int;
@@ -116,7 +327,7 @@ persistent actor AlphaOrchestrator {
     directiveId  : Nat;
     description  : Text;
     assignedTo   : AlphaAgentId;
-    weight       : Float;         // φ-weighted priority within directive
+    weight       : Float;
     status       : TaskStatus;
     result       : ?Text;
     createdAt    : Int;
@@ -133,34 +344,182 @@ persistent actor AlphaOrchestrator {
     #Retrying;
   };
 
-  /// Quorum request — gather consensus across Alpha agents
+  /// Quorum request
   public type QuorumRequest = {
     id         : Nat;
     question   : Text;
-    responses  : [(AlphaAgentId, Text, Float)]; // agent, response, confidence
-    threshold  : Float;  // φ-derived threshold (default 0.618)
+    responses  : [(AlphaAgentId, Text, Float)];
+    threshold  : Float;
     resolved   : Bool;
     resolution : ?Text;
     createdAt  : Int;
   };
 
-  // ── State ──────────────────────────────────────────────────────────
+  /// Diagnostic snapshot
+  public type DiagSnapshot = {
+    health         : Float;
+    directives     : Nat;
+    inFlight       : Nat;
+    completed      : Nat;
+    failed         : Nat;
+    agentsActive   : Nat;
+    coherence      : Float;
+    timestamp      : Int;
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STATE — The Living Memory
+  // ══════════════════════════════════════════════════════════════════
 
   stable var nextDirectiveId : Nat = 0;
   stable var nextTaskId      : Nat = 0;
   stable var nextQuorumId    : Nat = 0;
   stable var totalDispatched : Nat = 0;
   stable var totalCompleted  : Nat = 0;
+  stable var totalFailed     : Nat = 0;
+  stable var epochCount      : Nat = 0;
+  stable var lastCoherence   : Float = 1.0;
 
-  transient let directives = Buffer.Buffer<Directive>(64);
-  transient let tasks      = Buffer.Buffer<Task>(256);
-  transient let quorums    = Buffer.Buffer<QuorumRequest>(32);
-  transient let eventLog   = Buffer.Buffer<Text>(512);
+  transient let alphaAgents = Buffer.Buffer<AlphaAgent>(8);
+  transient let directives  = Buffer.Buffer<Directive>(64);
+  transient let tasks       = Buffer.Buffer<Task>(256);
+  transient let quorums     = Buffer.Buffer<QuorumRequest>(32);
+  transient let auditLog    = Buffer.Buffer<Text>(512);
+  transient let diagLog     = Buffer.Buffer<DiagSnapshot>(64);
 
-  // ── SUB-MODEL: DIRECTIVE — Intake & Decomposition ─────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  HEARTBEAT — The Autonomous Pulse (~2 seconds)
+  //
+  //  This is what makes the organism ALIVE.  The IC fires this
+  //  automatically every consensus round.  No external trigger needed.
+  // ══════════════════════════════════════════════════════════════════
+
+  system func heartbeat() : async () {
+    heartbeatCount += 1;
+
+    // Don't process until genesis is complete
+    if (not initialized) { return };
+
+    // Auto-register into mesh on first live heartbeat
+    if (not registeredInMesh) {
+      await _autoRegister();
+    };
+
+    // Every HBT_PROCESS_INTERVAL: process pending directives
+    if (heartbeatCount % HBT_PROCESS_INTERVAL == 0) {
+      _processQueue();
+    };
+
+    // Every HBT_DIAG_INTERVAL: run self-diagnostics
+    if (heartbeatCount % HBT_DIAG_INTERVAL == 0) {
+      let d = _runDiag();
+      diagLog.add(d);
+      while (diagLog.size() > MAX_DIAG) { ignore diagLog.remove(0) };
+      epochCount += 1;
+    };
+
+    // Every HBT_HEAL_INTERVAL: self-heal
+    if (heartbeatCount % HBT_HEAL_INTERVAL == 0) {
+      _selfHeal();
+    };
+  };
+
+  /// Autonomous directive processing — dispatches queued work
+  func _processQueue() {
+    for (i in Iter.range(0, directives.size() - 1)) {
+      let d = directives.get(i);
+      // Auto-dispatch directives that are decomposed but not yet in flight
+      if (d.status == #Decomposing) {
+        var dispatched : Nat = 0;
+        for (j in Iter.range(0, tasks.size() - 1)) {
+          let t = tasks.get(j);
+          if (t.directiveId == d.id and t.status == #Queued) {
+            tasks.put(j, {
+              id = t.id; directiveId = t.directiveId;
+              description = t.description; assignedTo = t.assignedTo;
+              weight = t.weight; status = #Dispatched;
+              result = t.result; createdAt = t.createdAt;
+              completedAt = null; attempts = t.attempts + 1;
+            });
+            dispatched += 1;
+            totalDispatched += 1;
+          };
+        };
+        if (dispatched > 0) {
+          directives.put(i, {
+            id = d.id; intent = d.intent; priority = d.priority;
+            source = d.source; tasks = d.tasks; status = #InFlight;
+            createdAt = d.createdAt; completedAt = null;
+          });
+          auditLog.add("AUTO-DISPATCH directive #" # Nat.toText(d.id) #
+                       " → " # Nat.toText(dispatched) # " tasks");
+        };
+      };
+    };
+  };
+
+  /// Self-diagnostic — computes health from completion rates
+  func _runDiag() : DiagSnapshot {
+    var inFlight : Nat = 0;
+    var completed : Nat = 0;
+    var failed : Nat = 0;
+    for (d in directives.vals()) {
+      switch (d.status) {
+        case (#InFlight)  { inFlight += 1 };
+        case (#Completed) { completed += 1 };
+        case (#Failed)    { failed += 1 };
+        case _ {};
+      };
+    };
+
+    var agentsActive : Nat = 0;
+    for (a in alphaAgents.vals()) {
+      if (a.status == #Active) { agentsActive += 1 };
+    };
+
+    let rate = if (totalDispatched == 0) 1.0
+               else Float.fromInt(totalCompleted) / Float.fromInt(totalDispatched);
+    lastCoherence := rate;
+
+    {
+      health       = rate;
+      directives   = directives.size();
+      inFlight;
+      completed;
+      failed;
+      agentsActive;
+      coherence    = rate;
+      timestamp    = Time.now();
+    }
+  };
+
+  /// Self-healing — retries failed tasks up to 3 attempts
+  func _selfHeal() {
+    var retried : Nat = 0;
+    for (i in Iter.range(0, tasks.size() - 1)) {
+      let t = tasks.get(i);
+      if (t.status == #Failed and t.attempts < 3) {
+        tasks.put(i, {
+          id = t.id; directiveId = t.directiveId;
+          description = t.description; assignedTo = t.assignedTo;
+          weight = t.weight; status = #Queued;
+          result = null; createdAt = t.createdAt;
+          completedAt = null; attempts = t.attempts;
+        });
+        retried += 1;
+      };
+    };
+    if (retried > 0) {
+      auditLog.add("SELF-HEAL: " # Nat.toText(retried) # " tasks re-queued (heartbeat " #
+                   Nat.toText(heartbeatCount) # ")");
+    };
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  SUB-MODEL: DIRECTIVE — Intake & Decomposition
+  // ══════════════════════════════════════════════════════════════════
 
   /// Submit a new directive to the Alpha Orchestrator.
-  /// The directive is queued for decomposition into routable tasks.
   public shared(msg) func submitDirective(
     intent   : Text,
     priority : DirectivePriority
@@ -169,9 +528,7 @@ persistent actor AlphaOrchestrator {
     nextDirectiveId += 1;
 
     let directive : Directive = {
-      id;
-      intent;
-      priority;
+      id; intent; priority;
       source      = msg.caller;
       tasks       = [];
       status      = #Pending;
@@ -180,7 +537,7 @@ persistent actor AlphaOrchestrator {
     };
 
     directives.add(directive);
-    eventLog.add("DIRECTIVE #" # Nat.toText(id) # " submitted: " # intent);
+    auditLog.add("DIRECTIVE #" # Nat.toText(id) # " submitted: " # intent);
     directive
   };
 
@@ -188,7 +545,7 @@ persistent actor AlphaOrchestrator {
   /// Uses φ-weighted capability matching.
   public func decomposeDirective(
     directiveId : Nat,
-    taskSpecs   : [(Text, AlphaAgentId)]  // (description, target agent)
+    taskSpecs   : [(Text, AlphaAgentId)]
   ) : async [Task] {
     let createdTasks = Buffer.Buffer<Task>(taskSpecs.size());
     let taskIds = Buffer.Buffer<Nat>(taskSpecs.size());
@@ -198,7 +555,6 @@ persistent actor AlphaOrchestrator {
       let taskId = nextTaskId;
       nextTaskId += 1;
 
-      // φ-weighted priority: first tasks have higher weight
       let weight = Float.pow(PHI, -1.0 * Float.fromInt(index));
 
       let task : Task = {
@@ -220,78 +576,109 @@ persistent actor AlphaOrchestrator {
       index += 1;
     };
 
-    // Update directive with task IDs
+    // Update directive status
     for (i in Iter.range(0, directives.size() - 1)) {
       let d = directives.get(i);
       if (d.id == directiveId) {
         directives.put(i, {
-          id          = d.id;
-          intent      = d.intent;
-          priority    = d.priority;
-          source      = d.source;
-          tasks       = Buffer.toArray(taskIds);
-          status      = #Decomposing;
-          createdAt   = d.createdAt;
-          completedAt = null;
+          id = d.id; intent = d.intent; priority = d.priority;
+          source = d.source; tasks = Buffer.toArray(taskIds);
+          status = #Decomposing; createdAt = d.createdAt; completedAt = null;
         });
       };
     };
 
-    eventLog.add("DECOMPOSE #" # Nat.toText(directiveId) #
+    auditLog.add("DECOMPOSE #" # Nat.toText(directiveId) #
                  " → " # Nat.toText(taskSpecs.size()) # " tasks");
     Buffer.toArray(createdTasks)
   };
 
-  // ── SUB-MODEL: DISPATCH — φ-Weighted Routing ──────────────────────
+  /// Auto-decompose: submit + decompose + route in one call.
+  /// This is what TURING calls when it has a full plan.
+  public shared(msg) func executeDirective(
+    intent    : Text,
+    priority  : DirectivePriority,
+    taskSpecs : [(Text, AlphaAgentId)]
+  ) : async { directiveId : Nat; tasksCreated : Nat } {
+    let id = nextDirectiveId;
+    nextDirectiveId += 1;
 
-  /// Dispatch all queued tasks for a directive.
-  /// Marks tasks as dispatched and increments counters.
+    let taskIds = Buffer.Buffer<Nat>(taskSpecs.size());
+    var index : Nat = 0;
+
+    for ((desc, agent) in taskSpecs.vals()) {
+      let taskId = nextTaskId;
+      nextTaskId += 1;
+      let weight = Float.pow(PHI, -1.0 * Float.fromInt(index));
+
+      tasks.add({
+        id = taskId; directiveId = id;
+        description = desc; assignedTo = agent;
+        weight; status = #Queued;
+        result = null; createdAt = Time.now();
+        completedAt = null; attempts = 0;
+      });
+      taskIds.add(taskId);
+      index += 1;
+    };
+
+    directives.add({
+      id; intent; priority;
+      source = msg.caller;
+      tasks = Buffer.toArray(taskIds);
+      status = #Decomposing;
+      createdAt = Time.now();
+      completedAt = null;
+    });
+
+    auditLog.add("EXECUTE directive #" # Nat.toText(id) # ": " # intent #
+                 " → " # Nat.toText(taskSpecs.size()) # " tasks queued");
+    { directiveId = id; tasksCreated = taskSpecs.size() }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  SUB-MODEL: DISPATCH — Manual override (heartbeat auto-dispatches)
+  // ══════════════════════════════════════════════════════════════════
+
+  /// Force-dispatch all queued tasks for a directive NOW.
   public func dispatchDirective(directiveId : Nat) : async Nat {
     var dispatched : Nat = 0;
-
     for (i in Iter.range(0, tasks.size() - 1)) {
       let t = tasks.get(i);
       if (t.directiveId == directiveId and t.status == #Queued) {
         tasks.put(i, {
-          id          = t.id;
-          directiveId = t.directiveId;
-          description = t.description;
-          assignedTo  = t.assignedTo;
-          weight      = t.weight;
-          status      = #Dispatched;
-          result      = t.result;
-          createdAt   = t.createdAt;
-          completedAt = null;
-          attempts    = t.attempts + 1;
+          id = t.id; directiveId = t.directiveId;
+          description = t.description; assignedTo = t.assignedTo;
+          weight = t.weight; status = #Dispatched;
+          result = t.result; createdAt = t.createdAt;
+          completedAt = null; attempts = t.attempts + 1;
         });
         dispatched += 1;
         totalDispatched += 1;
       };
     };
 
-    // Update directive status
-    for (i in Iter.range(0, directives.size() - 1)) {
-      let d = directives.get(i);
-      if (d.id == directiveId) {
-        directives.put(i, {
-          id          = d.id;
-          intent      = d.intent;
-          priority    = d.priority;
-          source      = d.source;
-          tasks       = d.tasks;
-          status      = #InFlight;
-          createdAt   = d.createdAt;
-          completedAt = null;
-        });
+    if (dispatched > 0) {
+      for (i in Iter.range(0, directives.size() - 1)) {
+        let d = directives.get(i);
+        if (d.id == directiveId) {
+          directives.put(i, {
+            id = d.id; intent = d.intent; priority = d.priority;
+            source = d.source; tasks = d.tasks; status = #InFlight;
+            createdAt = d.createdAt; completedAt = null;
+          });
+        };
       };
     };
 
-    eventLog.add("DISPATCH #" # Nat.toText(directiveId) #
-                 " → " # Nat.toText(dispatched) # " tasks sent");
+    auditLog.add("DISPATCH #" # Nat.toText(directiveId) # " → " #
+                 Nat.toText(dispatched) # " tasks");
     dispatched
   };
 
-  // ── SUB-MODEL: LIFECYCLE — Workflow Tracking ───────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  SUB-MODEL: LIFECYCLE — Completion & Failure
+  // ══════════════════════════════════════════════════════════════════
 
   /// Report task completion.
   public func completeTask(taskId : Nat, result : Text) : async Bool {
@@ -299,22 +686,18 @@ persistent actor AlphaOrchestrator {
       let t = tasks.get(i);
       if (t.id == taskId) {
         tasks.put(i, {
-          id          = t.id;
-          directiveId = t.directiveId;
-          description = t.description;
-          assignedTo  = t.assignedTo;
-          weight      = t.weight;
-          status      = #Completed;
-          result      = ?result;
-          createdAt   = t.createdAt;
-          completedAt = ?Time.now();
-          attempts    = t.attempts;
+          id = t.id; directiveId = t.directiveId;
+          description = t.description; assignedTo = t.assignedTo;
+          weight = t.weight; status = #Completed;
+          result = ?result; createdAt = t.createdAt;
+          completedAt = ?Time.now(); attempts = t.attempts;
         });
         totalCompleted += 1;
 
-        // Check if all tasks for this directive are complete
-        ignore checkDirectiveCompletion(t.directiveId);
-        eventLog.add("COMPLETE task #" # Nat.toText(taskId));
+        // Update agent stats
+        _recordAgentSuccess(t.assignedTo);
+        ignore _checkDirectiveCompletion(t.directiveId);
+        auditLog.add("COMPLETE task #" # Nat.toText(taskId));
         return true;
       };
     };
@@ -327,26 +710,23 @@ persistent actor AlphaOrchestrator {
       let t = tasks.get(i);
       if (t.id == taskId) {
         tasks.put(i, {
-          id          = t.id;
-          directiveId = t.directiveId;
-          description = t.description;
-          assignedTo  = t.assignedTo;
-          weight      = t.weight;
-          status      = #Failed;
-          result      = ?("FAILED: " # reason);
-          createdAt   = t.createdAt;
-          completedAt = ?Time.now();
-          attempts    = t.attempts;
+          id = t.id; directiveId = t.directiveId;
+          description = t.description; assignedTo = t.assignedTo;
+          weight = t.weight; status = #Failed;
+          result = ?("FAILED: " # reason); createdAt = t.createdAt;
+          completedAt = ?Time.now(); attempts = t.attempts;
         });
-        eventLog.add("FAIL task #" # Nat.toText(taskId) # ": " # reason);
+        totalFailed += 1;
+
+        _recordAgentFailure(t.assignedTo);
+        auditLog.add("FAIL task #" # Nat.toText(taskId) # ": " # reason);
         return true;
       };
     };
     false
   };
 
-  /// Check if all tasks in a directive are done. If so, mark complete.
-  func checkDirectiveCompletion(directiveId : Nat) : Bool {
+  func _checkDirectiveCompletion(directiveId : Nat) : Bool {
     var allDone = true;
     var anyFailed = false;
 
@@ -361,28 +741,59 @@ persistent actor AlphaOrchestrator {
     };
 
     if (allDone) {
+      let finalStatus : DirectiveStatus = if anyFailed #Failed else #Completed;
       for (i in Iter.range(0, directives.size() - 1)) {
         let d = directives.get(i);
         if (d.id == directiveId) {
           directives.put(i, {
-            id          = d.id;
-            intent      = d.intent;
-            priority    = d.priority;
-            source      = d.source;
-            tasks       = d.tasks;
-            status      = if anyFailed #Failed else #Completed;
-            createdAt   = d.createdAt;
-            completedAt = ?Time.now();
+            id = d.id; intent = d.intent; priority = d.priority;
+            source = d.source; tasks = d.tasks; status = finalStatus;
+            createdAt = d.createdAt; completedAt = ?Time.now();
           });
         };
       };
       let suffix = if anyFailed " FAILED" else " COMPLETED";
-      eventLog.add("DIRECTIVE #" # Nat.toText(directiveId) # suffix);
+      auditLog.add("DIRECTIVE #" # Nat.toText(directiveId) # suffix);
     };
     allDone
   };
 
-  // ── SUB-MODEL: QUORUM — Alpha Agent Consensus ─────────────────────
+  func _recordAgentSuccess(agentId : AlphaAgentId) {
+    for (i in Iter.range(0, alphaAgents.size() - 1)) {
+      let a = alphaAgents.get(i);
+      if (agentEq(a.id, agentId)) {
+        alphaAgents.put(i, {
+          id = a.id; name = a.name; capabilities = a.capabilities;
+          health = Float.min(1.0, a.health + 0.01);
+          lastSeen = Time.now();
+          tasksCompleted = a.tasksCompleted + 1;
+          tasksFailed = a.tasksFailed;
+          status = #Active;
+        });
+      };
+    };
+  };
+
+  func _recordAgentFailure(agentId : AlphaAgentId) {
+    for (i in Iter.range(0, alphaAgents.size() - 1)) {
+      let a = alphaAgents.get(i);
+      if (agentEq(a.id, agentId)) {
+        let newHealth = Float.max(0.0, a.health - 0.05);
+        let newStatus : AlphaAgentStatus = if (newHealth < 0.3) #Degraded else #Active;
+        alphaAgents.put(i, {
+          id = a.id; name = a.name; capabilities = a.capabilities;
+          health = newHealth; lastSeen = Time.now();
+          tasksCompleted = a.tasksCompleted;
+          tasksFailed = a.tasksFailed + 1;
+          status = newStatus;
+        });
+      };
+    };
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  SUB-MODEL: QUORUM — Alpha Agent Consensus
+  // ══════════════════════════════════════════════════════════════════
 
   /// Request a quorum vote from Alpha agents.
   public func requestQuorum(question : Text) : async QuorumRequest {
@@ -390,17 +801,16 @@ persistent actor AlphaOrchestrator {
     nextQuorumId += 1;
 
     let qr : QuorumRequest = {
-      id;
-      question;
+      id; question;
       responses  = [];
-      threshold  = PHI_INV;  // 0.618 — golden ratio threshold
+      threshold  = PHI_INV;
       resolved   = false;
       resolution = null;
       createdAt  = Time.now();
     };
 
     quorums.add(qr);
-    eventLog.add("QUORUM #" # Nat.toText(id) # " requested: " # question);
+    auditLog.add("QUORUM #" # Nat.toText(id) # " requested: " # question);
     qr
   };
 
@@ -420,28 +830,26 @@ persistent actor AlphaOrchestrator {
 
         let responses = Buffer.toArray(newResponses);
 
-        // Check if quorum is met (φ-weighted confidence exceeds threshold)
+        // φ-weighted confidence
         var totalWeight : Float = 0.0;
-        var index : Nat = 0;
+        var idx : Nat = 0;
         for ((_, _, conf) in responses.vals()) {
-          totalWeight += conf * Float.pow(PHI, -1.0 * Float.fromInt(index));
-          index += 1;
+          totalWeight += conf * Float.pow(PHI, -1.0 * Float.fromInt(idx));
+          idx += 1;
         };
         let avgConfidence = totalWeight / Float.fromInt(responses.size());
         let resolved = avgConfidence >= q.threshold and responses.size() >= 3;
 
         quorums.put(i, {
-          id         = q.id;
-          question   = q.question;
-          responses;
-          threshold  = q.threshold;
+          id = q.id; question = q.question;
+          responses; threshold = q.threshold;
           resolved;
           resolution = if resolved ?("Quorum reached: avg_conf=" # Float.toText(avgConfidence)) else null;
-          createdAt  = q.createdAt;
+          createdAt = q.createdAt;
         });
 
         if (resolved) {
-          eventLog.add("QUORUM #" # Nat.toText(quorumId) # " RESOLVED");
+          auditLog.add("QUORUM #" # Nat.toText(quorumId) # " RESOLVED");
         };
         return true;
       };
@@ -449,12 +857,12 @@ persistent actor AlphaOrchestrator {
     false
   };
 
-  // ── Queries ────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  QUERIES — The Observable Surface
+  // ══════════════════════════════════════════════════════════════════
 
   public query func getDirective(id : Nat) : async ?Directive {
-    for (d in directives.vals()) {
-      if (d.id == id) { return ?d };
-    };
+    for (d in directives.vals()) { if (d.id == id) { return ?d } };
     null
   };
 
@@ -478,80 +886,97 @@ persistent actor AlphaOrchestrator {
     Buffer.toArray(buf)
   };
 
+  public query func listAlphaAgents() : async [AlphaAgent] {
+    Buffer.toArray(alphaAgents)
+  };
+
   public query func listQuorums() : async [QuorumRequest] {
     Buffer.toArray(quorums)
   };
 
-  public query func getEventLog() : async [Text] {
-    Buffer.toArray(eventLog)
+  public query func getAuditLog() : async [Text] {
+    Buffer.toArray(auditLog)
   };
 
-  // ── Diagnostics ────────────────────────────────────────────────────
+  public query func getDiagLog() : async [DiagSnapshot] {
+    Buffer.toArray(diagLog)
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  DIAGNOSTICS & SELF-HEALING — The Immune System
+  // ══════════════════════════════════════════════════════════════════
 
   public query func diag() : async {
     status          : Text;
     health          : Float;
+    alive           : Bool;
+    heartbeats      : Nat;
     directives      : Nat;
     tasks           : Nat;
     dispatched      : Nat;
     completed       : Nat;
+    failed          : Nat;
     quorums         : Nat;
+    agentsOnline    : Nat;
     completionRate  : Float;
+    epoch           : Nat;
+    registeredInMesh : Bool;
     timestamp       : Int;
   } {
     let rate = if (totalDispatched == 0) 1.0
                else Float.fromInt(totalCompleted) / Float.fromInt(totalDispatched);
+    var online : Nat = 0;
+    for (a in alphaAgents.vals()) {
+      if (a.status == #Active) { online += 1 };
+    };
     {
-      status         = if (rate > PHI_INV) "ORCHESTRATING" else "DEGRADED";
+      status         = if (not initialized) "GENESIS_PENDING"
+                       else if (rate > PHI_INV) "ORCHESTRATING"
+                       else "DEGRADED";
       health         = rate;
+      alive          = initialized;
+      heartbeats     = heartbeatCount;
       directives     = directives.size();
       tasks          = tasks.size();
       dispatched     = totalDispatched;
       completed      = totalCompleted;
+      failed         = totalFailed;
       quorums        = quorums.size();
+      agentsOnline   = online;
       completionRate = rate;
+      epoch          = epochCount;
+      registeredInMesh;
       timestamp      = Time.now();
     }
   };
 
+  /// Manual heal trigger (heartbeat does this automatically too)
   public func heal() : async Text {
-    // Retry all failed tasks (up to 3 attempts)
-    var retried : Nat = 0;
-    for (i in Iter.range(0, tasks.size() - 1)) {
-      let t = tasks.get(i);
-      if (t.status == #Failed and t.attempts < 3) {
-        tasks.put(i, {
-          id          = t.id;
-          directiveId = t.directiveId;
-          description = t.description;
-          assignedTo  = t.assignedTo;
-          weight      = t.weight;
-          status      = #Queued;
-          result      = null;
-          createdAt   = t.createdAt;
-          completedAt = null;
-          attempts    = t.attempts;
-        });
-        retried += 1;
-      };
-    };
-    eventLog.add("HEAL: " # Nat.toText(retried) # " tasks re-queued");
-    "AlphaOrchestrator heal: " # Nat.toText(retried) # " task(s) re-queued for retry."
+    _selfHeal();
+    "AlphaOrchestrator heal: self-heal cycle executed."
   };
 
   public func register() : async Text {
-    "AlphaOrchestrator registered. Capabilities: [orchestration, dispatch, lifecycle, quorum]."
+    "AlphaOrchestrator registered. Capabilities: [orchestration, dispatch, lifecycle, quorum, alpha_routing]. ALIVE."
   };
 
   public query func report_status() : async Text {
-    "ALPHA_ORCHESTRATOR | directives=" # Nat.toText(directives.size()) #
+    let rate = if (totalDispatched == 0) 1.0
+               else Float.fromInt(totalCompleted) / Float.fromInt(totalDispatched);
+    "ALPHA_ORCHESTRATOR | alive=" # (if initialized "true" else "false") #
+    " heartbeats=" # Nat.toText(heartbeatCount) #
+    " directives=" # Nat.toText(directives.size()) #
     " tasks=" # Nat.toText(tasks.size()) #
     " dispatched=" # Nat.toText(totalDispatched) #
     " completed=" # Nat.toText(totalCompleted) #
-    " quorums=" # Nat.toText(quorums.size())
+    " failed=" # Nat.toText(totalFailed) #
+    " rate=" # Float.toText(rate) #
+    " mesh=" # (if registeredInMesh "true" else "false")
   };
 
-  // ── Helpers ────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  HELPERS
+  // ══════════════════════════════════════════════════════════════════
 
   func agentEq(a : AlphaAgentId, b : AlphaAgentId) : Bool {
     agentToNat(a) == agentToNat(b)
@@ -567,11 +992,13 @@ persistent actor AlphaOrchestrator {
     }
   };
 
-  // ── Identity ───────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  IDENTITY — Who We Are
+  // ══════════════════════════════════════════════════════════════════
 
   public query func name() : async Text { "ALPHA_ORCHESTRATOR" };
 
   public query func designation() : async Text {
-    "The Sovereign Directive Router — One voice issues the directive, the orchestra moves as one"
+    "The Sovereign Directive Router — One voice issues the directive, the orchestra moves as one. ALIVE."
   };
 };
