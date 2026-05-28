@@ -321,6 +321,10 @@
     "sanproto_grid": {
       "main": "src/organisms/sanproto_grid/main.mo",
       "type": "motoko"
+    },
+    "sovereign_cycles": {
+      "main": "src/organisms/sovereign_cycles/main.mo",
+      "type": "motoko"
     }
   }
 }
