@@ -321,6 +321,14 @@
     "sanproto_grid": {
       "main": "src/organisms/sanproto_grid/main.mo",
       "type": "motoko"
+    },
+    "alpha_orchestrator": {
+      "main": "src/organisms/alpha_orchestrator/main.mo",
+      "type": "motoko"
+    },
+    "alpha_conductor": {
+      "main": "src/organisms/alpha_conductor/main.mo",
+      "type": "motoko"
     }
   }
 }
