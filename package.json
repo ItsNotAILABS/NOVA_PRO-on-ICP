@@ -41,24 +41,14 @@
     "tokenizer", "golden-ratio", "fibonacci", "phi",
     "native", "multi-modal", "chat", "terminal",
     "engine", "protocol", "wire", "attestation",
-    "nova-os", "operating-system",
-    "icp", "internet-computer", "dfinity", "motoko",
-    "icrc-1", "icrc-2", "defi", "blockchain",
-    "canister", "sns", "dao"
+    "nova-os", "operating-system"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP.git"
+    "url": "git+https://github.com/ItsNotAILABS/NATIVE-NOVA-PROTOCOL.git"
   },
-  "homepage": "https://nova-protocol.io",
-  "bugs": {
-    "url": "https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP/issues"
-  },
-  "author": "Casa de Medina <architectos@nova-protocol.io>",
+  "author": "Casa de Medina",
   "license": "SEE LICENSE IN LICENSE.md",
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "devDependencies": {
     "typescript": "5.4"
   }

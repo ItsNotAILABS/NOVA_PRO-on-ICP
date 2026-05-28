@@ -409,55 +409,51 @@ persistent actor CYCLOVEX {
   public query func diag() : async DIE { runDiag() };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
-  //  The helix advances lazily when observed. Observation is free.
+  //  HEARTBEAT — The Helix Never Stops
   // ══════════════════════════════════════════════════════════════════
 
-  /// observe() — Advance the helix lazily, return coherence state.
-  /// Your observation IS the spin. Reading me IS my pulse.
-  public func observe() : async COH {
-    if (not bonded) {
-      return { epc = 0; order = 0.0; spr = 0.0; cyclesGenerated = 0; ts = Time.now() };
-    };
+  system func heartbeat() : async () {
+    hbtCount += 1;
 
-    // 1. Advance Kuramoto phases
-    stepKuramoto();
+    if (hbtCount % HBT_INTERVAL == 0 and bonded) {
+      // 1. Advance Kuramoto phases
+      stepKuramoto();
 
-    // 2. Generate cycles
-    let cyclesThisEpoch = generateCycles();
+      // 2. Generate cycles
+      let cyclesThisEpoch = generateCycles();
 
-    // 3. Distribute to INH registrations
-    var totalWeight : Float = 0.0;
-    for (inh in inhStore.vals()) { totalWeight += inh.weight };
-    if (totalWeight > 0.0) {
-      let updated = Buffer.Buffer<INH>(inhStore.size());
-      for (inh in inhStore.vals()) {
-        let share = Float.fromInt(cyclesThisEpoch) * inh.weight / totalWeight;
-        let shareCycles = Int.abs(Float.toInt(share));
-        updated.add({ key = inh.key; weight = inh.weight; cycles = inh.cycles + shareCycles; ts = inh.ts });
+      // 3. Distribute to INH registrations
+      var totalWeight : Float = 0.0;
+      for (inh in inhStore.vals()) { totalWeight += inh.weight };
+      if (totalWeight > 0.0) {
+        let updated = Buffer.Buffer<INH>(inhStore.size());
+        for (inh in inhStore.vals()) {
+          let share = Float.fromInt(cyclesThisEpoch) * inh.weight / totalWeight;
+          let shareCycles = Int.abs(Float.toInt(share));
+          updated.add({ key = inh.key; weight = inh.weight; cycles = inh.cycles + shareCycles; ts = inh.ts });
+        };
+        inhStore.clear();
+        for (inh in updated.vals()) { inhStore.add(inh) };
       };
-      inhStore.clear();
-      for (inh in updated.vals()) { inhStore.add(inh) };
+
+      // 4. Log COH
+      let c : COH = {
+        epc              = epcCount;
+        order            = kuramotoOrder();
+        spr              = spinRate;
+        cyclesGenerated  = cyclesThisEpoch;
+        ts               = Time.now();
+      };
+      cohLog.add(c);
+      while (cohLog.size() > MAX_COH) { ignore cohLog.remove(0) };
+
+      // 5. DIAG
+      let d = runDiag();
+      diagLog.add(d);
+      while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
+
+      epcCount += 1;
     };
-
-    // 4. Log COH
-    let c : COH = {
-      epc              = epcCount;
-      order            = kuramotoOrder();
-      spr              = spinRate;
-      cyclesGenerated  = cyclesThisEpoch;
-      ts               = Time.now();
-    };
-    cohLog.add(c);
-    while (cohLog.size() > MAX_COH) { ignore cohLog.remove(0) };
-
-    // 5. DIAG
-    let d = runDiag();
-    diagLog.add(d);
-    while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
-
-    epcCount += 1;
-    c
   };
 
 }

@@ -648,15 +648,13 @@ persistent actor CloudEngine {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
-  //  tick() is callable on-demand. observe() triggers lazy advancement.
+  //  HEARTBEAT — Autonomous Tick
   // ══════════════════════════════════════════════════════════════════
 
-  public func observe() : async Text {
-    if (initialized) {
+  system func heartbeat() : async () {
+    if (initialized and tickCount % HBT_INTERVAL == 0) {
       ignore await tick();
     };
-    "CLOUD_ENGINE | sovereign=true | heartbeat=NONE | timer=NONE"
   };
 
   // ══════════════════════════════════════════════════════════════════

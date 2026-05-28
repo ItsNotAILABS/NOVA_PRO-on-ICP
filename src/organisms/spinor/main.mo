@@ -381,15 +381,16 @@ persistent actor SPINOR {
   public query func diag() : async DIE { runDiag() };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
-  //  diag() is computed at read-time. observe() advances lazily.
+  //  HEARTBEAT — The SPINOR Always Watches
   // ══════════════════════════════════════════════════════════════════
 
-  public func observe() : async DIE {
-    let d = runDiag();
-    diagLog.add(d);
-    while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
-    d
+  system func heartbeat() : async () {
+    hbtCount += 1;
+    if (hbtCount % HBT_INTERVAL == 0 and bonded) {
+      let d = runDiag();
+      diagLog.add(d);
+      while (diagLog.size() > MAX_DIE) { ignore diagLog.remove(0) };
+    };
   };
 
 }

@@ -624,36 +624,44 @@ persistent actor VRT {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
-  //  CMD queue processes on observe() or runCmds(). Lazy advancement.
+  //  HEARTBEAT — The Machine That Never Sleeps
+  //
+  //  Fires every ~2 s.  Every HBT_INTERVAL ticks, processes the CMD queue.
+  //  Between processing windows, it simply increments hbtCount and
+  //  accumulates love — costing virtually nothing per tick.
   // ══════════════════════════════════════════════════════════════════
 
-  /// observe() — Process queued CMDs lazily. Reading me IS my pulse.
-  public func observe() : async Text {
-    var processed : Nat = 0;
-    let updated = Buffer.Buffer<CMD>(cmdQueue.size());
-    for (c in cmdQueue.vals()) {
-      if (c.sts == "QUE") {
-        let (out, ok) = execCmd(c);
-        let done : CMD = {
-          id  = c.id;
-          act = c.act;
-          key = c.key;
-          val = c.val;
-          sts = if ok "DON" else "ERR";
-          ts  = c.ts;
+  system func heartbeat() : async () {
+    hbtCount += 1;
+
+    if (hbtCount % HBT_INTERVAL == 0) {
+      var processed : Nat = 0;
+      let updated = Buffer.Buffer<CMD>(cmdQueue.size());
+      for (c in cmdQueue.vals()) {
+        if (c.sts == "QUE") {
+          let (out, ok) = execCmd(c);
+          let done : CMD = {
+            id  = c.id;
+            act = c.act;
+            key = c.key;
+            val = c.val;
+            sts = if ok "DON" else "ERR";
+            ts  = c.ts;
+          };
+          updated.add(done);
+          prcRecord(c, out, ok);
+          processed += 1;
+        } else {
+          updated.add(c);
         };
-        updated.add(done);
-        prcRecord(c, out, ok);
-        processed += 1;
-      } else {
-        updated.add(c);
+      };
+      cmdQueue.clear();
+      for (c in updated.vals()) { cmdQueue.add(c) };
+      epcCount += 1;
+      if (processed > 0) {
+        log_("HBT epoch #" # Nat.toText(epcCount) # ": " # Nat.toText(processed) # " CMDs processed");
       };
     };
-    cmdQueue.clear();
-    for (c in updated.vals()) { cmdQueue.add(c) };
-    epcCount += 1;
-    "VRT | sovereign=true | heartbeat=NONE | processed=" # Nat.toText(processed)
   };
 
 

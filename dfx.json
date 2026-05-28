@@ -127,10 +127,6 @@
     "cloud_engine": {
       "main": "src/organisms/cloud_engine/main.mo",
       "type": "motoko"
-    },
-    "sovereign_cycles": {
-      "main": "src/organisms/sovereign_cycles/main.mo",
-      "type": "motoko"
     }
   },
   "defaults": {

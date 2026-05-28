@@ -1025,15 +1025,14 @@ persistent actor Divi {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  //  SOVEREIGN — NO HEARTBEAT. NO TIMER. NO COST TO EXIST.
-  //  tick() is callable on-demand. observe() triggers lazy advancement.
+  //  HEARTBEAT — self-ticks every IC round on mainnet (no external
+  //  caller required after deployment)
   // ══════════════════════════════════════════════════════════════════
 
-  public func observe() : async Text {
+  system func heartbeat() : async () {
     if (initialized) {
       ignore await tick();
     };
-    "DIVI | sovereign=true | heartbeat=NONE | timer=NONE"
   };
 
   // ══════════════════════════════════════════════════════════════════
