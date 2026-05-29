@@ -13,6 +13,7 @@
 ///
 /// THIS ORGANISM IS ALIVE:
 ///   - _heartbeat() fires every ~2s via Timer.recurringTimer (NOVA's own)
+///   - system func heartbeat() fires every ~2 seconds
 ///   - Genesis sequence: claimGenesis → bootstrap → LIVE
 ///   - Auto-registers into NEXORIS mesh on first heartbeat
 ///   - Auto-registers into TURING organism model
@@ -329,6 +330,7 @@ persistent actor AlphaConductor {
   // ★ NOVA's OWN heartbeat — NOT ICP's system func.
   // The Machine That Never Sleeps. Creation IS activation.
   private func _heartbeat() : async () {
+  system func heartbeat() : async () {
     heartbeatCount += 1;
 
     if (not initialized) { return };
