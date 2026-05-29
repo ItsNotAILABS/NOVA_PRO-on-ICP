@@ -1,0 +1,126 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  NOVA SDK PUBLISH — Publish nova-os-sdk to npm                           ║
+# ║  © 2024-2026 Casa de Medina — NSCP-2025                                 ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+name: Publish SDK to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Dry run (validate only)'
+        required: false
+        type: boolean
+        default: true
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: "Build & Publish SDK"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build SDK
+        run: npm run build
+
+      - name: Verify build artifacts
+        run: |
+          echo "═══ Build Artifact Verification ═══"
+          echo ""
+
+          # Verify main entry point
+          test -f .nova/build/organism/organism/sdk/index.js && \
+            echo "✓ SDK index.js built" || \
+            { echo "✗ Missing SDK index.js"; exit 1; }
+
+          # Verify type declarations
+          test -f .nova/build/organism/organism/sdk/index.d.ts && \
+            echo "✓ SDK type declarations built" || \
+            { echo "✗ Missing SDK type declarations"; exit 1; }
+
+          # Verify desktop entry
+          test -f .nova/build/organism/organism/desktop/index.js && \
+            echo "✓ Desktop module built" || \
+            { echo "✗ Missing desktop module"; exit 1; }
+
+          echo ""
+          echo "Export verification:"
+          node -e "
+            import('./.nova/build/organism/organism/sdk/index.js')
+              .then(m => {
+                const exports = Object.keys(m);
+                console.log('  Exported symbols:', exports.length);
+                console.log('  Key exports:', exports.slice(0, 10).join(', '));
+                console.log('✓ SDK module loads correctly');
+              })
+              .catch(e => {
+                console.error('✗ SDK module failed to load:', e.message);
+                process.exit(1);
+              });
+          "
+
+      - name: Bump version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "Bumped to version: $NEW_VERSION"
+
+      - name: Publish to npm (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "═══ DRY RUN — npm publish ═══"
+          npm publish --dry-run
+          echo ""
+          echo "✓ Package is valid and ready to publish"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: ${{ github.event.inputs.dry_run != 'true' || github.event_name == 'release' }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag release
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event_name == 'workflow_dispatch' }}
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: release nova-os-sdk v${{ env.NEW_VERSION }}"
+          git tag "v${{ env.NEW_VERSION }}"
+          git push origin HEAD --tags

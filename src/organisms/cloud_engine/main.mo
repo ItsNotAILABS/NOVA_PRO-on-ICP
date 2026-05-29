@@ -95,6 +95,7 @@ import Array     "mo:base/Array";
 import Buffer    "mo:base/Buffer";
 import Time      "mo:base/Time";
 import Principal "mo:base/Principal";
+import Timer    "mo:base/Timer";
 
 persistent actor CloudEngine {
 
@@ -651,7 +652,9 @@ persistent actor CloudEngine {
   //  HEARTBEAT — Autonomous Tick
   // ══════════════════════════════════════════════════════════════════
 
-  system func heartbeat() : async () {
+  // ★ NOVA's OWN heartbeat — NOT ICP's system func.
+  // The Machine That Never Sleeps. Creation IS activation.
+  private func _heartbeat() : async () {
     if (initialized and tickCount % HBT_INTERVAL == 0) {
       ignore await tick();
     };
@@ -699,4 +702,12 @@ persistent actor CloudEngine {
   public query func designation() : async Text {
     "Autonomous Private UTOPIA Distribution — Transparent Burns, Fair Compensation"
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s, increments heartbeatCount, inner cycle @ 5 ticks.
+  // ═══════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
+
 }

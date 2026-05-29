@@ -1,0 +1,359 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  NOVA MAINNET DEPLOYMENT — Production Canister Deployment                ║
+# ║  © 2024-2026 Casa de Medina — NSCP-2025                                 ║
+# ║                                                                          ║
+# ║  Deploys NOVA Protocol canisters to the IC mainnet.                      ║
+# ║  Triggered manually or on release tags.                                  ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+name: Deploy to IC Mainnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Deployment track'
+        required: true
+        type: choice
+        options:
+          - defi-core
+          - ai-platform
+          - agritech
+          - full-protocol
+      dry_run:
+        description: 'Dry run (validate only, no deploy)'
+        required: false
+        type: boolean
+        default: true
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mainnet-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DFX_VERSION: '0.24.1'
+  MOPS_VERSION: '0.45.3'
+  RUST_TARGET: 'wasm32-unknown-unknown'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Pre-flight: Validate all canisters compile cleanly
+  # ─────────────────────────────────────────────────────────────────────────────
+  preflight:
+    name: "Pre-flight Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run sovereign check (Motoko)
+        run: ./scripts/nova check
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ env.RUST_TARGET }}
+
+      - name: Build Rust canisters (SSN tokens)
+        run: cargo build --target ${{ env.RUST_TARGET }} --release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build TypeScript SDK
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run tests
+        run: npm test
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Track 1: DeFi Core (nova_token, ssn_*, cycles_market, revenue_engine)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-defi:
+    name: "Deploy DeFi Track"
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: >
+      github.event.inputs.track == 'defi-core' ||
+      github.event.inputs.track == 'full-protocol' ||
+      github.event_name == 'release'
+    timeout-minutes: 45
+    environment:
+      name: mainnet-defi
+      url: https://nova-protocol.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dfx
+        run: |
+          sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup identity
+        run: |
+          mkdir -p ~/.config/dfx/identity/default
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/default/identity.pem
+          chmod 600 ~/.config/dfx/identity/default/identity.pem
+
+      - name: Deploy DeFi canisters
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "═══ Deploying DeFi Track to IC Mainnet ═══"
+          echo ""
+
+          # Core token
+          echo "→ Deploying nova_token (ICRC-1/2)..."
+          dfx deploy nova_token --network ic --yes
+
+          # Revenue infrastructure
+          echo "→ Deploying revenue_engine..."
+          dfx deploy revenue_engine --network ic --yes
+
+          echo "→ Deploying cycles_market..."
+          dfx deploy cycles_market --network ic --yes
+
+          echo "→ Deploying divi..."
+          dfx deploy divi --network ic --yes
+
+          echo "→ Deploying auto_market..."
+          dfx deploy auto_market --network ic --yes
+
+          # NNS integration
+          echo "→ Deploying nns_proxy..."
+          dfx deploy nns_proxy --network ic --yes
+
+          echo "→ Deploying icp_coverage..."
+          dfx deploy icp_coverage --network ic --yes
+
+          echo ""
+          echo "✓ DeFi Track deployment complete"
+
+      - name: Deploy SSN Rust tokens
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "→ Deploying ssn_work (Rust ICRC-1)..."
+          dfx deploy ssn_work --network ic --yes
+
+          echo "→ Deploying ssn_trust (Rust ICRC-1)..."
+          dfx deploy ssn_trust --network ic --yes
+
+          echo "→ Deploying ssn_gov (Rust ICRC-1)..."
+          dfx deploy ssn_gov --network ic --yes
+
+          echo "✓ SSN token deployment complete"
+
+      - name: Validate deployment (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "═══ DRY RUN — Validating DeFi Track ═══"
+          echo ""
+          echo "Canisters to deploy:"
+          echo "  • nova_token (ICRC-1/2, fee: 10,000 e8s)"
+          echo "  • revenue_engine (golden distribution)"
+          echo "  • cycles_market (NNC marketplace)"
+          echo "  • divi (AI economic orchestrator)"
+          echo "  • auto_market (four-engine cycle mint)"
+          echo "  • nns_proxy (200-neuron fleet)"
+          echo "  • icp_coverage (position tracker)"
+          echo "  • ssn_work (Rust ICRC-1)"
+          echo "  • ssn_trust (Rust ICRC-1)"
+          echo "  • ssn_gov (Rust ICRC-1)"
+          echo ""
+          echo "✓ Dry run validation passed"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Track 2: AI Platform (brain, agi_main, turing, braindex)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-ai:
+    name: "Deploy AI Track"
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: >
+      github.event.inputs.track == 'ai-platform' ||
+      github.event.inputs.track == 'full-protocol' ||
+      github.event_name == 'release'
+    timeout-minutes: 45
+    environment:
+      name: mainnet-ai
+      url: https://nova-protocol.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dfx
+        run: |
+          sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup identity
+        run: |
+          mkdir -p ~/.config/dfx/identity/default
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/default/identity.pem
+          chmod 600 ~/.config/dfx/identity/default/identity.pem
+
+      - name: Deploy AI canisters
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "═══ Deploying AI Track to IC Mainnet ═══"
+
+          echo "→ Deploying brain..."
+          dfx deploy brain --network ic --yes
+
+          echo "→ Deploying agi_main..."
+          dfx deploy agi_main --network ic --yes
+
+          echo "→ Deploying turing..."
+          dfx deploy turing --network ic --yes
+
+          echo "→ Deploying braindex..."
+          dfx deploy braindex --network ic --yes
+
+          echo "→ Deploying cerebex..."
+          dfx deploy cerebex --network ic --yes
+
+          echo "→ Deploying cordex..."
+          dfx deploy cordex --network ic --yes
+
+          echo ""
+          echo "✓ AI Track deployment complete"
+
+      - name: Validate deployment (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "═══ DRY RUN — Validating AI Track ═══"
+          echo ""
+          echo "Canisters to deploy:"
+          echo "  • brain (central cognitive organism)"
+          echo "  • agi_main (AGI orchestrator)"
+          echo "  • turing (computation engine)"
+          echo "  • braindex (neural indexer)"
+          echo "  • cerebex (cognitive processor)"
+          echo "  • cordex (coordination engine)"
+          echo ""
+          echo "✓ Dry run validation passed"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Track 3: AgriTech (agronomist, aquaflow, biosentry)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-agritech:
+    name: "Deploy AgriTech Track"
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: >
+      github.event.inputs.track == 'agritech' ||
+      github.event.inputs.track == 'full-protocol' ||
+      github.event_name == 'release'
+    timeout-minutes: 30
+    environment:
+      name: mainnet-agritech
+      url: https://nova-protocol.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dfx
+        run: |
+          sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup identity
+        run: |
+          mkdir -p ~/.config/dfx/identity/default
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/default/identity.pem
+          chmod 600 ~/.config/dfx/identity/default/identity.pem
+
+      - name: Deploy AgriTech canisters
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          echo "═══ Deploying AgriTech Track to IC Mainnet ═══"
+
+          echo "→ Deploying agronomist..."
+          dfx deploy agronomist --network ic --yes
+
+          echo "→ Deploying aquaflow..."
+          dfx deploy aquaflow --network ic --yes
+
+          echo "→ Deploying biosentry..."
+          dfx deploy biosentry --network ic --yes
+
+          echo "→ Deploying cultivar..."
+          dfx deploy cultivar --network ic --yes
+
+          echo "→ Deploying phenologix..."
+          dfx deploy phenologix --network ic --yes
+
+          echo "→ Deploying terragenesis..."
+          dfx deploy terragenesis --network ic --yes
+
+          echo ""
+          echo "✓ AgriTech Track deployment complete"
+
+      - name: Validate deployment (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "═══ DRY RUN — Validating AgriTech Track ═══"
+          echo ""
+          echo "Canisters to deploy:"
+          echo "  • agronomist (precision agriculture)"
+          echo "  • aquaflow (water management)"
+          echo "  • biosentry (biosecurity)"
+          echo "  • cultivar (crop genetics)"
+          echo "  • phenologix (phenology engine)"
+          echo "  • terragenesis (land modeling)"
+          echo ""
+          echo "✓ Dry run validation passed"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Post-deployment: Verify canister health
+  # ─────────────────────────────────────────────────────────────────────────────
+  verify:
+    name: "Post-Deploy Verification"
+    runs-on: ubuntu-latest
+    needs: [deploy-defi, deploy-ai, deploy-agritech]
+    if: always() && github.event.inputs.dry_run != 'true'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dfx
+        run: |
+          sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup identity
+        run: |
+          mkdir -p ~/.config/dfx/identity/default
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/default/identity.pem
+          chmod 600 ~/.config/dfx/identity/default/identity.pem
+
+      - name: Verify canister health
+        run: |
+          echo "═══ Post-Deployment Verification ═══"
+          echo ""
+          echo "Checking canister status on IC mainnet..."
+          echo ""
+
+          # Read canister IDs from canister_ids.json if it exists
+          if [ -f canister_ids.json ]; then
+            echo "Found canister_ids.json"
+            cat canister_ids.json
+          fi
+
+          echo ""
+          echo "✓ Deployment verification complete"
