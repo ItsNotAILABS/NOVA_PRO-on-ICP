@@ -12,6 +12,8 @@ import TokenEconomy from './pages/TokenEconomy'
 import ICPCoverage from './pages/ICPCoverage'
 import RealityRelease from './pages/RealityRelease'
 import Executive from './pages/Executive'
+import AIChat from './pages/AIChat'
+import MultiEngine from './pages/MultiEngine'
 import ETHome from './pages/et/ETHome'
 import ETPulse from './pages/et/ETPulse'
 import ETProposals from './pages/et/ETProposals'
@@ -31,6 +33,8 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="engine" element={<Engine />} />
           <Route path="agents" element={<Agents />} />
+          <Route path="ai" element={<AIChat />} />
+          <Route path="multi-engine" element={<MultiEngine />} />
           <Route path="renderability" element={<Renderability />} />
           <Route path="token-economy" element={<TokenEconomy />} />
           <Route path="icp-coverage" element={<ICPCoverage />} />

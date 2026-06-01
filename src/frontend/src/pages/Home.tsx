@@ -5,6 +5,8 @@
 import { Link } from 'react-router-dom'
 
 const cards = [
+  { title: 'NOVA AI', to: '/ai' },
+  { title: 'Multi-Engine Architecture', to: '/multi-engine' },
   { title: 'The Architectonic Engine', to: '/engine' },
   { title: 'Activated Agents', to: '/agents' },
   { title: 'Renderability Architecture', to: '/renderability' },
