@@ -32,8 +32,11 @@
     "type": "git",
     "url": "https://github.com/novaprotocol/nova-network-suite"
   },
+  "types": "dist/index.d.ts",
   "files": [
     "index.js",
+    "src/",
+    "dist/",
     "node20/",
     "python/",
     "julia/",
@@ -41,6 +44,8 @@
     "java/"
   ],
   "scripts": {
+    "build": "tsc -p src/tsconfig.json",
+    "typecheck": "tsc -p src/tsconfig.json --noEmit",
     "test": "node --test",
     "lint": "eslint .",
     "demo": "node node20/index.mjs"

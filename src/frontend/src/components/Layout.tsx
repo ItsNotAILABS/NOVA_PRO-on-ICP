@@ -2,7 +2,9 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const navItems = [
   { to: '/', label: 'Home', end: true },
-  { to: '/engine', label: 'Engine' },
+  { to: '/ai', label: 'AI' },
+  { to: '/multi-engine', label: 'Engines' },
+  { to: '/engine', label: 'Architecture' },
   { to: '/agents', label: 'Agents' },
   { to: '/renderability', label: 'Renderability' },
   { to: '/token-economy', label: 'Token Economy' },

@@ -37,11 +37,26 @@
     "fix": "./scripts/nova fix"
   },
   "keywords": [
-    "ai", "sdk", "agi", "nova", "sovereign", "desktop",
-    "tokenizer", "golden-ratio", "fibonacci", "phi",
-    "native", "multi-modal", "chat", "terminal",
-    "engine", "protocol", "wire", "attestation",
-    "nova-os", "operating-system"
+    "ai",
+    "sdk",
+    "agi",
+    "nova",
+    "sovereign",
+    "desktop",
+    "tokenizer",
+    "golden-ratio",
+    "fibonacci",
+    "phi",
+    "native",
+    "multi-modal",
+    "chat",
+    "terminal",
+    "engine",
+    "protocol",
+    "wire",
+    "attestation",
+    "nova-os",
+    "operating-system"
   ],
   "repository": {
     "type": "git",
