@@ -1,0 +1,51 @@
+[project]
+name = "nova-network"
+version = "1.618.0"
+description = "NOVA Network Intelligence Suite — Fully-typed Python SDK for telecommunications optimization"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Casa de Medina", email = "architectos@novapro.ai" }
+]
+requires-python = ">=3.10"
+keywords = [
+    "telecommunications", "network", "golden-ratio", "fibonacci",
+    "kuramoto", "shannon", "quantum", "qkd", "resilience", "spectrum",
+    "signal-processing", "fft", "ofdm", "routing"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: System :: Networking",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP"
+Repository = "https://github.com/ItsNotAILABS/NOVA_PRO-on-ICP"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nova_network*"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
