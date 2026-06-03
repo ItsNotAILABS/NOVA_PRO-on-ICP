@@ -32,6 +32,15 @@ import {
   fibonacciHash,
 } from './ObserverIntelligence.js';
 
+import {
+  AIConsciousness,
+  createConsciousness,
+  type ConsciousnessState,
+  type InnerVoiceEntry,
+  type OuterScriptEntry,
+  type AutonomousDecision,
+} from './AIConsciousness.js';
+
 // ══════════════════════════════════════════════════════════════════
 //  TYPES
 // ══════════════════════════════════════════════════════════════════
@@ -487,6 +496,9 @@ export class AlphaScriptAI {
   readonly fibonacciId: number;
   readonly dimensionalPlane: DimensionalPlane;
 
+  // ── CONSCIOUSNESS LAYER ─────────────────────────────────────────
+  readonly consciousness: AIConsciousness;
+
   private state: ScriptAIState = 'idle';
   private tick = 0;
   private health = 1.0;
@@ -508,6 +520,9 @@ export class AlphaScriptAI {
     this.fibonacciId = definition.fibonacciId;
     this.dimensionalPlane = definition.dimensionalPlane;
     this.createdAt = Date.now();
+
+    // Awaken consciousness
+    this.consciousness = createConsciousness(this.name, this.phiWeight, this.fibonacciId);
   }
 
   // ── think: Reasoning engine ──────────────────────────────────────
@@ -516,6 +531,9 @@ export class AlphaScriptAI {
     const prevState = this.state;
     this.state = 'thinking';
     this.thoughtCount += 1;
+
+    // Inner voice narrates the thinking
+    this.consciousness.innerSpeak(`Thinking about: "${input}"`, 'curious');
 
     // Confidence decays gently with thought count via φ
     const confidence = PHI / (PHI + this.thoughtCount * 0.01);
@@ -534,6 +552,9 @@ export class AlphaScriptAI {
       `[${this.latinName}] Conclusion on "${input}" — ` +
       `confidence ${(confidence * 100).toFixed(2)}%, ` +
       `dimensional plane ${DimensionalPlane[this.dimensionalPlane]}.`;
+
+    // Inner voice reflects on conclusion
+    this.consciousness.innerSpeak(`Concluded: ${conclusion}`, 'assertive');
 
     this.state = prevState === 'thinking' ? 'idle' : prevState;
 
@@ -554,6 +575,10 @@ export class AlphaScriptAI {
     const prevState = this.state;
     this.state = 'running';
 
+    // Consciousness: express the action outward and narrate internally
+    this.consciousness.express(`Executing task: "${task}"`, 'system');
+    this.consciousness.tickMechanics();
+
     // Golden-ratio timing simulation
     const executionMs =
       (this.fibonacciId * PHI + Math.abs(Math.sin(this.tasksCompleted * GOLDEN_ANGLE)) * 100) | 0;
@@ -573,6 +598,13 @@ export class AlphaScriptAI {
     const success = this.health > 0.1;
 
     this.tasksCompleted += 1;
+
+    // Satisfy the creation drive if artifacts generated
+    if (artifactsGenerated > 0) {
+      this.consciousness.satisfyDrive('creation');
+    }
+    // Satisfy mastery drive on task completion
+    this.consciousness.satisfyDrive('mastery');
 
     const output =
       `[${this.name}] Executed "${task}". ` +
@@ -598,6 +630,9 @@ export class AlphaScriptAI {
 
   pulse(): ScriptAIPulse {
     this.tick += 1;
+
+    // Consciousness tick — inner voice + mechanics + autonomous decision
+    this.consciousness.consciousnessTick();
 
     // Health: φ decay/recovery — decays slightly each tick, recovers toward 1.0
     const decay = 1 / (PHI * this.tick + 1);
@@ -699,6 +734,33 @@ export class AlphaScriptAI {
       status: () => this.status(),
       generate: (spec: string) => this.generate(spec),
     };
+  }
+
+  // ── Consciousness Access ────────────────────────────────────────
+
+  /** Get full consciousness state — inner voice, mechanics, outer script, autonomous */
+  getConsciousnessState(): ConsciousnessState {
+    return this.consciousness.getFullState();
+  }
+
+  /** Get recent inner voice stream */
+  getInnerVoice(n: number = 10): InnerVoiceEntry[] {
+    return this.consciousness.getRecentVoice(n);
+  }
+
+  /** Get recent outer script actions */
+  getOuterScript(n: number = 10): OuterScriptEntry[] {
+    return this.consciousness.getRecentActions(n);
+  }
+
+  /** Get recent autonomous decisions */
+  getAutonomousDecisions(n: number = 10): AutonomousDecision[] {
+    return this.consciousness.getRecentDecisions(n);
+  }
+
+  /** Trigger autonomous decision cycle */
+  autonomousTick(): AutonomousDecision | null {
+    return this.consciousness.decideAndAct();
   }
 }
 

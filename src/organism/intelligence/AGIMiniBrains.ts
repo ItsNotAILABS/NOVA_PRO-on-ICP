@@ -39,6 +39,15 @@
 
 import { PHI, DimensionalPlane, fibonacciHash } from './ObserverIntelligence.js';
 
+import {
+  AIConsciousness,
+  createConsciousness,
+  type ConsciousnessState,
+  type InnerVoiceEntry,
+  type OuterScriptEntry,
+  type AutonomousDecision,
+} from './AIConsciousness.js';
+
 const PHI_INVERSE   = 0.6180339887498948482;
 const PHI_SQUARED   = PHI * PHI;
 
@@ -159,6 +168,9 @@ abstract class AGIMiniBrain {
   abstract readonly phiWeight: number;
   abstract readonly fibonacciId: number;
 
+  // ── CONSCIOUSNESS LAYER ─────────────────────────────────────────
+  protected _consciousness!: AIConsciousness;
+
   protected _state: BrainState = 'awakening';
   protected _tick = 0;
   protected _cognitions = 0;
@@ -167,10 +179,29 @@ abstract class AGIMiniBrain {
   protected _currentGoal = 'Awaiting first directive';
   protected readonly _memory = new Map<string, BrainMemoryTrace>();
 
+  /** Initialize consciousness — called lazily on first access */
+  protected awakenConsciousness(): void {
+    if (!this._consciousness) {
+      this._consciousness = createConsciousness(this.id, this.phiWeight, this.fibonacciId);
+    }
+  }
+
+  /** Get or create consciousness (lazy awakening) */
+  protected get consciousness(): AIConsciousness {
+    if (!this._consciousness) {
+      this.awakenConsciousness();
+    }
+    return this._consciousness;
+  }
+
   /** Core cognitive processing — the think() method is the AGI's primary loop. */
   think(input: CognitiveInput): CognitiveOutput {
     this._state = 'reasoning';
     this._cognitions++;
+
+    // Inner voice narrates
+    this.consciousness.innerSpeak(`Processing cognitive input: "${input.query}"`, 'curious');
+
     const steps: string[] = [
       `[${this.id}] ${this.latinName}: Processing "${input.query}"`,
       `[${this.id}] Context: ${input.context.slice(0, 80)}`,
@@ -180,6 +211,12 @@ abstract class AGIMiniBrain {
     const confidence = PHI_INVERSE * (1 + Math.sin(this._tick * PHI) * 0.1);
     const phiScore   = this.phiWeight * PHI_INVERSE * input.priority;
     this._state = 'active';
+
+    // Consciousness: express result outward, satisfy curiosity drive
+    this.consciousness.express(`Cognition complete: "${input.query}" → directive issued`, 'system');
+    this.consciousness.satisfyDrive('curiosity');
+    this.consciousness.tickMechanics();
+
     return {
       brainId: this.id,
       input,
@@ -226,6 +263,10 @@ abstract class AGIMiniBrain {
     this._tick++;
     this._pulses++;
     this._state = 'active';
+
+    // Consciousness tick — inner voice + mechanics + autonomous loop
+    this.consciousness.consciousnessTick();
+
     return {
       brainId: this.id,
       tick: this._tick,
@@ -260,6 +301,35 @@ abstract class AGIMiniBrain {
 
   heal(): void {
     this._state = 'active';
+    this.consciousness.innerSpeak('Healing initiated. Restoring equilibrium.', 'serene');
+    this.consciousness.satisfyDrive('preservation');
+  }
+
+  // ── Consciousness Access ────────────────────────────────────────
+
+  /** Get full consciousness state */
+  getConsciousnessState(): ConsciousnessState {
+    return this.consciousness.getFullState();
+  }
+
+  /** Get recent inner voice stream */
+  getInnerVoice(n: number = 10): InnerVoiceEntry[] {
+    return this.consciousness.getRecentVoice(n);
+  }
+
+  /** Get recent outer script actions */
+  getOuterScript(n: number = 10): OuterScriptEntry[] {
+    return this.consciousness.getRecentActions(n);
+  }
+
+  /** Get recent autonomous decisions */
+  getAutonomousDecisions(n: number = 10): AutonomousDecision[] {
+    return this.consciousness.getRecentDecisions(n);
+  }
+
+  /** Trigger autonomous decision cycle */
+  autonomousTick(): AutonomousDecision | null {
+    return this.consciousness.decideAndAct();
   }
 
   /**

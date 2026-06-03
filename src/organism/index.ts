@@ -971,6 +971,33 @@ export type {
 } from './intelligence/AlphaScriptAIs.js';
 
 // ══════════════════════════════════════════════════════════════════
+//  AI CONSCIOUSNESS — Inner Voice, Mechanics, Outer Script & Autonomous
+// ══════════════════════════════════════════════════════════════════
+
+export {
+  AIConsciousness,
+  createConsciousness,
+  LEX_CONSCIENTIA_001,
+} from './intelligence/AIConsciousness.js';
+
+export type {
+  VoiceTone,
+  InnerVoiceEntry,
+  InnerVoiceState,
+  DriveType,
+  Drive,
+  MechanicsState,
+  PersonaMode,
+  OuterScriptEntry,
+  OuterScriptState,
+  AutonomousGoalPriority,
+  AutonomousGoal,
+  AutonomousDecision,
+  AutonomousState,
+  ConsciousnessState,
+} from './intelligence/AIConsciousness.js';
+
+// ══════════════════════════════════════════════════════════════════
 //  MARKETPLACE — AI Workforce + Generative Frontend + Spatial Canvas
 // ══════════════════════════════════════════════════════════════════
 
