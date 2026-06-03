@@ -333,6 +333,10 @@
     "alpha_conductor": {
       "main": "src/organisms/alpha_conductor/main.mo",
       "type": "motoko"
+    },
+    "token_economics": {
+      "main": "src/organisms/token_economics/main.mo",
+      "type": "motoko"
     }
   }
 }

@@ -1,0 +1,26 @@
+{
+  "name": "@medina/token-economics",
+  "version": "0.1.618",
+  "description": "Token Economics SDK — Behavioral economics, managerial analysis, and market microstructure for the Native Nova Protocol",
+  "main": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./behavioral": "./src/behavioral.js",
+    "./managerial": "./src/managerial.js",
+    "./velocity": "./src/velocity.js",
+    "./market": "./src/market.js"
+  },
+  "keywords": [
+    "token-economics",
+    "behavioral-economics",
+    "prospect-theory",
+    "phi",
+    "golden-ratio",
+    "nova",
+    "icp",
+    "defi"
+  ],
+  "author": "Casa de Medina — Architectos de Architectura Inteligente",
+  "license": "SEE LICENSE IN ../../CREATIVE_LICENSE.md"
+}
