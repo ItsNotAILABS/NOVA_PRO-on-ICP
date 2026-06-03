@@ -337,6 +337,22 @@
     "token_economics": {
       "main": "src/organisms/token_economics/main.mo",
       "type": "motoko"
+    },
+    "srce_connectome": {
+      "main": "src/organisms/srce_connectome/main.mo",
+      "type": "motoko"
+    },
+    "srce_governance": {
+      "main": "src/organisms/srce_governance/main.mo",
+      "type": "motoko"
+    },
+    "srce_substrate": {
+      "main": "src/organisms/srce_substrate/main.mo",
+      "type": "motoko"
+    },
+    "srce_interface": {
+      "main": "src/organisms/srce_interface/main.mo",
+      "type": "motoko"
     }
   }
 }
