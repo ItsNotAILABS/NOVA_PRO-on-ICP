@@ -14,6 +14,7 @@
 #   agritech   — agronomist, aquaflow, biosentry, cultivar, phenologix
 #   infra      — cloud_engine, protocol_engine, guardian, oracle
 #   governance — sns_dao, ssn_gov, praesidium, custos
+#   srce       — srce_connectome, srce_governance, srce_substrate, srce_interface
 #   all        — Deploy all tracks
 #
 # Examples:
@@ -60,7 +61,7 @@ if [ -z "$TRACK" ]; then
   echo ""
   echo "Usage: ./scripts/deploy-mainnet.sh [track] [--dry-run]"
   echo ""
-  echo "Available tracks: defi, ai, agritech, infra, governance, all"
+  echo "Available tracks: defi, ai, agritech, infra, governance, srce, all"
   exit 1
 fi
 
@@ -202,6 +203,18 @@ deploy_governance() {
   echo -e "${GREEN}✓ Governance Track deployment complete (4 canisters)${NC}"
 }
 
+deploy_srce() {
+  section_header "Track 6: SRCE — Sovereign Rotating Cloud Engines"
+
+  deploy_canister "srce_connectome" "(state and coherence engine)"
+  deploy_canister "srce_governance" "(governance and maintenance engine)"
+  deploy_canister "srce_substrate" "(substrate and accounting engine)"
+  deploy_canister "srce_interface" "(interface and bridge engine)"
+
+  echo ""
+  echo -e "${GREEN}✓ SRCE Track deployment complete (4 canisters)${NC}"
+}
+
 # ── Execute Selected Track ────────────────────────────────────────────────────
 
 case "$TRACK" in
@@ -220,16 +233,20 @@ case "$TRACK" in
   governance)
     deploy_governance
     ;;
+  srce)
+    deploy_srce
+    ;;
   all)
     deploy_defi
     deploy_ai
     deploy_agritech
     deploy_infra
     deploy_governance
+    deploy_srce
     ;;
   *)
     echo -e "${RED}Error: Unknown track '$TRACK'${NC}"
-    echo "Available tracks: defi, ai, agritech, infra, governance, all"
+    echo "Available tracks: defi, ai, agritech, infra, governance, srce, all"
     exit 1
     ;;
 esac
