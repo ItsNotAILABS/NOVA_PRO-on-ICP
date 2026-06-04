@@ -31,6 +31,7 @@
 import Float  "mo:base/Float";
 import Int    "mo:base/Int";
 import Nat    "mo:base/Nat";
+import Nat32  "mo:base/Nat32";
 import Nat64  "mo:base/Nat64";
 import Text   "mo:base/Text";
 import Array  "mo:base/Array";
@@ -38,10 +39,9 @@ import Buffer "mo:base/Buffer";
 import Time   "mo:base/Time";
 import Timer  "mo:base/Timer";
 import Bool   "mo:base/Bool";
+import Char   "mo:base/Char";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Hash   "mo:base/Hash";
-import Iter   "mo:base/Iter";
 
 persistent actor CognitiveLedger {
 
@@ -254,8 +254,7 @@ persistent actor CognitiveLedger {
     _processExpiredEscrows(now);
   };
 
-  // Self-start heartbeat on deploy
-  let _autoStart = Timer.recurringTimer<system>(#seconds HEARTBEAT_INTERVAL_S, _heartbeat);
+  // Heartbeat timer started at end of actor (after all function definitions)
 
   /// Process expired escrows (pure local computation)
   func _processExpiredEscrows(now : Int) {
@@ -646,7 +645,7 @@ persistent actor CognitiveLedger {
   func _simpleHash(data : Text) : Text {
     var h : Nat = 5381;
     for (c in data.chars()) {
-      let charCode = Nat64.toNat(Nat64.fromIntWrap(Int.abs(Int.fromNat32(Char.toNat32(c)))));
+      let charCode = Nat32.toNat(Char.toNat32(c));
       h := ((h * 33) + charCode) % 4294967296;
     };
     Nat.toText(h)
@@ -661,9 +660,9 @@ persistent actor CognitiveLedger {
   func _getMinimumFee(tier : PriorityTier) : Nat {
     switch (tier) {
       case (#Free)     { TRANSFER_FEE_E8S };                       // 10_000 e8s
-      case (#Standard) { Nat64.toNat(Nat64.fromIntWrap(Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI)))) };       // ~16_180
-      case (#Priority) { Nat64.toNat(Nat64.fromIntWrap(Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI_SQ)))) };    // ~26_180
-      case (#Critical) { Nat64.toNat(Nat64.fromIntWrap(Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI_SQ * PHI)))) }; // ~42_360
+      case (#Standard) { Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI)) };       // ~16_180
+      case (#Priority) { Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI_SQ)) };    // ~26_180
+      case (#Critical) { Int.abs(Float.toInt(Float.fromInt(TRANSFER_FEE_E8S) * PHI_SQ * PHI)) }; // ~42_360
     }
   };
 
@@ -710,4 +709,11 @@ persistent actor CognitiveLedger {
     };
     Buffer.toArray(result)
   };
+
+  // ══════════════════════════════════════════════════════════════════
+  //  ★ BORN BEATING — Timer self-starts on deploy (medina-heart)
+  //  ★ NOVA's own recurring timer. NOT ICP's system heartbeat.
+  //  ★ Fires every ~2s. Pure local ledger maintenance only.
+  // ══════════════════════════════════════════════════════════════════
+  ignore Timer.recurringTimer<system>(#seconds 2, _heartbeat);
 };

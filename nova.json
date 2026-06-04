@@ -353,6 +353,14 @@
     "srce_interface": {
       "main": "src/organisms/srce_interface/main.mo",
       "type": "motoko"
+    },
+    "cognitive_ledger": {
+      "main": "src/organisms/cognitive_ledger/main.mo",
+      "type": "motoko"
+    },
+    "cloud_colony": {
+      "main": "src/organisms/cloud_colony/main.mo",
+      "type": "motoko"
     }
   }
 }
