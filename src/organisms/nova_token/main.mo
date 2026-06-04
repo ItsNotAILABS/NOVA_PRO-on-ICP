@@ -137,10 +137,11 @@ persistent actor NovaToken {
   // ══════════════════════════════════════════════════════════════════
 
   public type TokenRole = {
-    #Gov;    // Governance-locked: earns SNS voting weight
-    #Cycle;  // Compute-access: redeems Native Cycles
-    #Vault;  // Treasury-reserved: backs floor cycle price
-    #Free;   // Unlocked / transferable
+    #Gov;         // Governance-locked: earns SNS voting weight
+    #Cycle;       // Compute-access: redeems Native Cycles
+    #Vault;       // Treasury-reserved: backs floor cycle price
+    #Computation; // Purchased computation: non-expiring owned result token
+    #Free;        // Unlocked / transferable
   };
 
   public type Account = {
@@ -149,6 +150,7 @@ persistent actor NovaToken {
     gov        : Nat;           // Governance-locked balance (e8s)
     cycle      : Nat;           // Compute-access balance (e8s)
     vault      : Nat;           // Treasury-reserved balance (e8s)
+    computation: Nat;           // Purchased computation tokens (e8s)
     createdAt  : Int;
     updatedAt  : Int;
     txCount    : Nat;
@@ -226,10 +228,11 @@ persistent actor NovaToken {
 
   func roleToText(r : TokenRole) : Text {
     switch r {
-      case (#Gov)   "Gov";
-      case (#Cycle) "Cycle";
-      case (#Vault) "Vault";
-      case (#Free)  "Free";
+      case (#Gov)         "Gov";
+      case (#Cycle)       "Cycle";
+      case (#Vault)       "Vault";
+      case (#Computation) "Computation";
+      case (#Free)        "Free";
     }
   };
 
@@ -276,6 +279,7 @@ persistent actor NovaToken {
           gov            = 0;
           cycle          = 0;
           vault          = 0;
+          computation    = 0;
           createdAt      = now;
           updatedAt      = now;
           txCount        = 0;
@@ -324,6 +328,7 @@ persistent actor NovaToken {
       gov            = a.gov;
       cycle          = a.cycle;
       vault          = a.vault;
+      computation    = a.computation;
       createdAt      = a.createdAt;
       updatedAt      = Time.now();
       txCount        = a.txCount + 1;
@@ -333,16 +338,18 @@ persistent actor NovaToken {
 
   func creditFreeRole(idx : Nat, amount : Nat, role : TokenRole) {
     let a = accounts.get(idx);
-    let newFree  = if (role == #Free)  { a.free  + amount } else { a.free  };
-    let newGov   = if (role == #Gov)   { a.gov   + amount } else { a.gov   };
-    let newCycle = if (role == #Cycle) { a.cycle + amount } else { a.cycle };
-    let newVault = if (role == #Vault) { a.vault + amount } else { a.vault };
+    let newFree   = if (role == #Free)        { a.free        + amount } else { a.free        };
+    let newGov    = if (role == #Gov)          { a.gov         + amount } else { a.gov         };
+    let newCycle  = if (role == #Cycle)        { a.cycle       + amount } else { a.cycle       };
+    let newVault  = if (role == #Vault)        { a.vault       + amount } else { a.vault       };
+    let newComp   = if (role == #Computation)  { a.computation + amount } else { a.computation };
     accounts.put(idx, {
       principal      = a.principal;
       free           = newFree;
       gov            = newGov;
       cycle          = newCycle;
       vault          = newVault;
+      computation    = newComp;
       createdAt      = a.createdAt;
       updatedAt      = Time.now();
       txCount        = a.txCount + 1;
@@ -442,22 +449,25 @@ persistent actor NovaToken {
     let idx = getOrCreateAccount(principal);
     let a = accounts.get(idx);
     let roleBalance : Nat = switch role {
-      case (#Gov)   a.gov;
-      case (#Cycle) a.cycle;
-      case (#Vault) a.vault;
-      case (#Free)  0;
+      case (#Gov)         a.gov;
+      case (#Cycle)       a.cycle;
+      case (#Vault)       a.vault;
+      case (#Computation) a.computation;
+      case (#Free)        0;
     };
     if (roleBalance < amount) { return #Err("Insufficient locked balance") };
     // Deduct from role, credit to Free
-    let newGov   = if (role == #Gov)   { a.gov   - amount } else { a.gov   };
-    let newCycle = if (role == #Cycle) { a.cycle - amount } else { a.cycle };
-    let newVault = if (role == #Vault) { a.vault - amount } else { a.vault };
+    let newGov   = if (role == #Gov)         { a.gov         - amount } else { a.gov         };
+    let newCycle = if (role == #Cycle)       { a.cycle       - amount } else { a.cycle       };
+    let newVault = if (role == #Vault)       { a.vault       - amount } else { a.vault       };
+    let newComp  = if (role == #Computation) { a.computation - amount } else { a.computation };
     accounts.put(idx, {
       principal      = a.principal;
       free           = a.free + amount;
       gov            = newGov;
       cycle          = newCycle;
       vault          = newVault;
+      computation    = newComp;
       createdAt      = a.createdAt;
       updatedAt      = Time.now();
       txCount        = a.txCount + 1;
@@ -520,7 +530,7 @@ persistent actor NovaToken {
         "At 1M Native Cycles/day volume: PHI^2x more revenue than raw reseller.";
       phiSupplyExponent          = 13;
       phiPremiumExponent         = 2;
-      subTokenRoles              = ["Gov", "Cycle", "Vault", "Free"];
+      subTokenRoles              = ["Gov", "Cycle", "Vault", "Computation", "Free"];
     }
   };
 

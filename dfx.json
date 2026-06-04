@@ -152,6 +152,10 @@
       "main": "src/organisms/cognitive_ledger/main.mo",
       "type": "motoko"
     },
+    "deep_vault": {
+      "main": "src/organisms/deep_vault/main.mo",
+      "type": "motoko"
+    },
     "cloud_colony": {
       "main": "src/organisms/cloud_colony/main.mo",
       "type": "motoko"

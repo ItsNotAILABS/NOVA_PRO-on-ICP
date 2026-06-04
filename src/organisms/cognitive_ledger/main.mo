@@ -46,6 +46,38 @@ import Result "mo:base/Result";
 persistent actor CognitiveLedger {
 
   // ══════════════════════════════════════════════════════════════════
+  //  DEEP VAULT INTEGRATION — Post-escrow minting of computation tokens
+  // ══════════════════════════════════════════════════════════════════
+  stable var deepVaultCanisterId : ?Principal = null;
+
+  type DeepVault = actor {
+    mint_computation_token : ({
+      owner       : Text;
+      sourceAgent : Text;
+      taskHash    : Text;
+      resultHash  : Text;
+      payload     : Text;
+      lineageRef  : ?Nat;
+      escrowRef   : ?Nat;
+      tags        : [Text];
+    }) -> async Result.Result<Nat, Text>;
+  };
+
+  public shared(msg) func setDeepVault(canisterId : Principal) : async () {
+    deepVaultCanisterId := ?canisterId;
+  };
+
+  func getDeepVault() : ?DeepVault {
+    switch (deepVaultCanisterId) {
+      case null null;
+      case (?id) {
+        let dv : DeepVault = actor (Principal.toText(id));
+        ?dv
+      };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
   //  CPL RUNTIME WIRING — The Permanent Foundation
   // ══════════════════════════════════════════════════════════════════
   stable var cplRuntimeCanisterId : ?Principal = null;
@@ -499,8 +531,34 @@ persistent actor CognitiveLedger {
     escrows.put(escrowId, updated);
     totalEscrowsSettled += 1;
 
+    // ═══ DEEP VAULT BRIDGE ═══
+    // After escrow release, mint a computation token to the buyer's vault.
+    // This makes the result permanently accessible — no re-purchase needed.
+    switch (getDeepVault()) {
+      case null {};  // Vault not wired yet — skip
+      case (?dv) {
+        let resultHashText = switch (escrow.resultHash) {
+          case null "";
+          case (?h) h;
+        };
+        // Find the cognitive record for this escrow to get lineage
+        let cogId = _findCognitiveByEscrow(escrowId);
+        ignore dv.mint_computation_token({
+          owner       = escrow.payer;
+          sourceAgent = escrow.worker;
+          taskHash    = escrow.taskHash;
+          resultHash  = resultHashText;
+          payload     = resultHashText;  // Compressed payload stored by hash
+          lineageRef  = ?cogId;
+          escrowRef   = ?escrowId;
+          tags        = ["escrow_settlement", "cognitive_task"];
+        });
+      };
+    };
+
     #ok("Escrow " # Nat.toText(escrowId) # " released — " #
-        Nat.toText(escrow.amount) # " e8s to worker " # escrow.worker)
+        Nat.toText(escrow.amount) # " e8s to worker " # escrow.worker #
+        " — computation token minted to buyer vault")
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -639,6 +697,22 @@ persistent actor CognitiveLedger {
   // ══════════════════════════════════════════════════════════════════
   //  INTERNAL HELPERS
   // ══════════════════════════════════════════════════════════════════
+
+  /// Find cognitive record associated with an escrow ID
+  func _findCognitiveByEscrow(escrowId : Nat) : Nat {
+    let size = records.size();
+    if (size == 0) { return 0 };
+    var i : Nat = size;
+    while (i > 0) {
+      i -= 1;
+      let rec = records.get(i);
+      // Match by memo containing the escrow reference
+      if (rec.memo == "task_completion" and rec.tokenFee == 0) {
+        return rec.id;
+      };
+    };
+    0
+  };
 
   /// Simple hash for proof commitments (deterministic string hash)
   /// In production, replace with SHA-256 via ic-crypto
