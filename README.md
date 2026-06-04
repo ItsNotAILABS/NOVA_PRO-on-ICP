@@ -1,4 +1,4 @@
-# NATIVE NOVA PROTOCOL
+# NATIVE NOVEL PROTOCOL
 
 **Protocol for the new clean internet/blockchain/phantom hybrid substrate
 cloud-edge-based sovereign Multi Field — where AI will be able to thrive for
