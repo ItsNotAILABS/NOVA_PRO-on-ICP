@@ -88,6 +88,10 @@
       "main": "src/organisms/nova_token/main.mo",
       "type": "motoko"
     },
+    "deep_vault": {
+      "main": "src/organisms/deep_vault/main.mo",
+      "type": "motoko"
+    },
     "nns_proxy": {
       "main": "src/organisms/nns_proxy/main.mo",
       "type": "motoko"
@@ -336,6 +340,30 @@
     },
     "token_economics": {
       "main": "src/organisms/token_economics/main.mo",
+      "type": "motoko"
+    },
+    "srce_connectome": {
+      "main": "src/organisms/srce_connectome/main.mo",
+      "type": "motoko"
+    },
+    "srce_governance": {
+      "main": "src/organisms/srce_governance/main.mo",
+      "type": "motoko"
+    },
+    "srce_substrate": {
+      "main": "src/organisms/srce_substrate/main.mo",
+      "type": "motoko"
+    },
+    "srce_interface": {
+      "main": "src/organisms/srce_interface/main.mo",
+      "type": "motoko"
+    },
+    "cognitive_ledger": {
+      "main": "src/organisms/cognitive_ledger/main.mo",
+      "type": "motoko"
+    },
+    "cloud_colony": {
+      "main": "src/organisms/cloud_colony/main.mo",
       "type": "motoko"
     }
   }

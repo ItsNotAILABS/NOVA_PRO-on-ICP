@@ -218,6 +218,126 @@ function heartbeat() {
 setInterval(heartbeat, HEARTBEAT_MS);
 
 // ═══════════════════════════════════════════════════════════════
+//  DEEP VAULT CLIENT — Computation Token Retrieval Layer
+//  Connects to the on-chain DeepVault canister via message passing.
+//  Buy once, own forever. Pull your computation tokens anytime.
+// ═══════════════════════════════════════════════════════════════
+
+const DeepVaultClient = {
+  // Local cache of vault records (synced from canister)
+  records: [],
+  owner: null,
+
+  /**
+   * Store a computation token locally (mirrors on-chain vault record).
+   * Called when a purchase is confirmed or synced from canister.
+   */
+  cacheRecord(record) {
+    // Check for duplicate by fibId
+    const existing = this.records.findIndex(r => r.fibId === record.fibId);
+    if (existing >= 0) {
+      this.records[existing] = record;
+    } else {
+      this.records.push(record);
+    }
+    HashChain.append('vault_cache:' + record.fibId);
+    return record;
+  },
+
+  /**
+   * Retrieve a computation token from local cache by ID.
+   * FREE — no cost, no expiration, you own it permanently.
+   */
+  retrieve(recordId) {
+    const record = this.records.find(r => r.id === recordId);
+    if (!record) return null;
+    record.accessCount = (record.accessCount || 0) + 1;
+    record.lastAccessed = Date.now();
+    record.phiWeight = 1.0; // Reset decay on access
+    return record;
+  },
+
+  /**
+   * Search vault by proximity on Clifford torus.
+   * Uses flat metric: d² = Δθ₁² + Δθ₂²
+   */
+  searchByProximity(theta1, theta2, limit) {
+    limit = limit || 10;
+    const scored = this.records.map(r => {
+      const d1 = this._angleDiff(r.coord.theta1, theta1);
+      const d2 = this._angleDiff(r.coord.theta2, theta2);
+      const dist = Math.sqrt(d1 * d1 + d2 * d2);
+      return { record: r, distance: dist };
+    });
+    scored.sort((a, b) => a.distance - b.distance);
+    return scored.slice(0, limit);
+  },
+
+  /**
+   * Search vault by semantic similarity (using memory-worker embeddings).
+   */
+  searchBySemantic(query, limit) {
+    limit = limit || 10;
+    if (this.records.length === 0) return [];
+    const qVec = EmbeddingEngine.embed(query);
+    const scored = [];
+    for (const r of this.records) {
+      // Embed the record's tags + task description for matching
+      const recordText = (r.tags || []).join(' ') + ' ' + (r.taskHash || '');
+      const rVec = EmbeddingEngine.embed(recordText);
+      const sim = EmbeddingEngine.similarity(qVec, rVec);
+      scored.push({ record: r, score: sim });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit);
+  },
+
+  /**
+   * Search by tag filter
+   */
+  searchByTags(tags, limit) {
+    limit = limit || 50;
+    const results = [];
+    for (const r of this.records) {
+      if (results.length >= limit) break;
+      const rTags = r.tags || [];
+      for (const t of tags) {
+        if (rTags.includes(t)) { results.push(r); break; }
+      }
+    }
+    return results;
+  },
+
+  /**
+   * Get all records for the current owner
+   */
+  getAll(limit) {
+    limit = limit || 100;
+    return this.records.slice(0, limit);
+  },
+
+  /**
+   * Get vault stats
+   */
+  stats() {
+    let totalAccesses = 0;
+    for (const r of this.records) totalAccesses += (r.accessCount || 0);
+    return {
+      totalRecords: this.records.length,
+      totalAccesses,
+      owner: this.owner,
+    };
+  },
+
+  _angleDiff(a, b) {
+    let diff = a - b;
+    if (diff > Math.PI) diff -= 2 * Math.PI;
+    if (diff < -Math.PI) diff += 2 * Math.PI;
+    return Math.abs(diff);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
 //  MESSAGE HANDLER — Command Dispatch
 // ═══════════════════════════════════════════════════════════════
 
@@ -268,6 +388,46 @@ self.onmessage = function (e) {
       result = { ok: true, vector: Array.from(vec), dims: DIMS };
       break;
     }
+    // ═══ DEEP VAULT COMMANDS ═══
+    case 'vault_cache': {
+      const cached = DeepVaultClient.cacheRecord(msg.record);
+      result = { ok: true, record: cached };
+      break;
+    }
+    case 'vault_retrieve': {
+      const rec = DeepVaultClient.retrieve(msg.recordId);
+      result = rec ? { ok: true, record: rec } : { ok: false, error: 'Record not found' };
+      break;
+    }
+    case 'vault_search_proximity': {
+      const hits = DeepVaultClient.searchByProximity(msg.theta1, msg.theta2, msg.limit);
+      result = { ok: true, results: hits };
+      break;
+    }
+    case 'vault_search_semantic': {
+      const hits = DeepVaultClient.searchBySemantic(msg.query, msg.limit);
+      result = { ok: true, results: hits };
+      break;
+    }
+    case 'vault_search_tags': {
+      const hits = DeepVaultClient.searchByTags(msg.tags, msg.limit);
+      result = { ok: true, results: hits };
+      break;
+    }
+    case 'vault_list': {
+      const all = DeepVaultClient.getAll(msg.limit);
+      result = { ok: true, records: all };
+      break;
+    }
+    case 'vault_stats': {
+      result = { ok: true, ...DeepVaultClient.stats() };
+      break;
+    }
+    case 'vault_set_owner': {
+      DeepVaultClient.owner = msg.owner;
+      result = { ok: true, owner: msg.owner };
+      break;
+    }
     default:
       result = { ok: false, error: 'unknown command: ' + cmd };
   }
@@ -285,5 +445,6 @@ self.postMessage({
   dims:        DIMS,
   heartbeatMs: HEARTBEAT_MS,
   phi:         PHI,
+  capabilities: ['memory', 'embedding', 'hashchain', 'deep_vault'],
   ts:          Date.now(),
 });
