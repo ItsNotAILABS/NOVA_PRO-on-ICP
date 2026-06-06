@@ -27,6 +27,7 @@ import {
 } from '../sdk/NovaEngineModels.js';
 import { NovaAppController, type AppLaunchRequest } from './NovaAppController.js';
 import { NovaEngineComparison } from './NovaEngineComparison.js';
+import { ChronicleIntelligence } from '../intelligence/ChronicleIntelligence.js';
 
 // ══════════════════════════════════════════════════════════════════
 //  TYPES
@@ -50,6 +51,7 @@ export type TerminalCommandType =
   | 'url'            // /url <url>
   | 'system'         // /system <action>
   | 'apps'           // /apps — list known apps
+  | 'chronicle'      // /chronicle tips — session tips
   | 'unknown';
 
 export interface ParsedCommand {
@@ -129,6 +131,7 @@ function parseCommand(input: string): ParsedCommand {
     case 'url': case 'browse': return { type: 'url', raw: trimmed, message, args: rest, timestamp };
     case 'system': case 'sys': return { type: 'system', raw: trimmed, message, args: rest, timestamp };
     case 'apps': return { type: 'apps', raw: trimmed, message, args: rest, timestamp };
+    case 'chronicle': return { type: 'chronicle', raw: trimmed, message, args: rest, timestamp };
     default: return { type: 'unknown', raw: trimmed, message: trimmed, args: rest, timestamp };
   }
 }
@@ -151,6 +154,7 @@ export class NovaChatTerminal {
 
   readonly appController: NovaAppController;
   readonly comparison: NovaEngineComparison;
+  readonly chronicle: ChronicleIntelligence;
 
   constructor(config?: Partial<TerminalConfig>) {
     this.config = {
@@ -166,6 +170,7 @@ export class NovaChatTerminal {
     this.startTime = Date.now();
     this.appController = new NovaAppController();
     this.comparison = new NovaEngineComparison();
+    this.chronicle = new ChronicleIntelligence();
 
     // Boot message
     this.addSystemMessage(this.getBootMessage());
@@ -218,6 +223,8 @@ export class NovaChatTerminal {
         return this.handleSystem(cmd);
       case 'apps':
         return this.handleApps();
+      case 'chronicle':
+        return this.handleChronicle(cmd);
       case 'unknown':
         return this.addEngineMessage(
           `Unknown command: ${cmd.raw}\nType /help for available commands.`,
@@ -527,6 +534,71 @@ export class NovaChatTerminal {
     return this.addEngineMessage(lines.join('\n'), 'NOVA-OS');
   }
 
+  // ── Chronicle Commands ──────────────────────────────────────────
+
+  private handleChronicle(cmd: ParsedCommand): TerminalMessage {
+    const subCommand = (cmd.args[0] ?? 'tips').toLowerCase();
+
+    if (subCommand !== 'tips') {
+      return this.addEngineMessage(
+        'Usage: /chronicle tips\nAnalyzes your session history and provides personalized recommendations.',
+        'system',
+      );
+    }
+
+    const report = this.chronicle.generateReport(
+      this.sessionId,
+      this.commandHistory,
+      this.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        engine: m.engine,
+        commandType: m.commandType,
+        timestamp: m.timestamp,
+      })),
+      this.startTime,
+    );
+
+    const masteryLabels = [
+      'Novice', 'Initiate', 'Apprentice', 'Operator',
+      'Architect', 'Sovereign', 'Oracle', 'Transcendent', 'φ-Master',
+    ];
+
+    const lines = [
+      '═══════════════════════════════════════════════',
+      '  CHRONICLE — Personalized Session Tips',
+      '═══════════════════════════════════════════════',
+      '',
+      `  Session: ${report.sessionId}`,
+      `  Commands executed: ${report.patterns.totalCommands}`,
+      `  Unique command types: ${report.patterns.uniqueCommandTypes}`,
+      `  Engines explored: ${report.patterns.engineUsage.size}`,
+      `  Mastery level: ${report.masteryLevel}/8 — ${masteryLabels[report.masteryLevel]}`,
+      '',
+    ];
+
+    if (report.tips.length === 0) {
+      lines.push('  ✓ No tips at this time — you\'re using NOVA-OS like a sovereign operator!');
+    } else {
+      lines.push(`  ${report.tips.length} personalized tip${report.tips.length > 1 ? 's' : ''}:`);
+      lines.push('');
+
+      for (const tip of report.tips) {
+        const icon = tip.category === 'efficiency' ? '⚡'
+          : tip.category === 'discovery' ? '🔭'
+          : tip.category === 'mastery' ? '🏛️'
+          : '⚙️';
+        lines.push(`  ${icon} [${tip.category.toUpperCase()}] (relevance: ${(tip.relevance * 100).toFixed(0)}%)`);
+        lines.push(`     ${tip.tip}`);
+        lines.push('');
+      }
+    }
+
+    lines.push('  Run /chronicle tips again after trying new commands to see updated recommendations.');
+
+    return this.addEngineMessage(lines.join('\n'), 'CHRONICLE');
+  }
+
   // ── Meta Commands ──────────────────────────────────────────────
 
   private handleStatus(): TerminalMessage {
@@ -605,6 +677,7 @@ export class NovaChatTerminal {
       '  META:',
       '    /status                System status',
       '    /history               Show recent messages',
+      '    /chronicle tips        Personalized tips based on session history',
       '    /clear                 Clear terminal',
       '    /help                  This message',
       '',
