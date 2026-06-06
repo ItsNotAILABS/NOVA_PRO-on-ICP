@@ -50,6 +50,8 @@ const TEST_FILES = [
   join(__dir, 'ai-protocol-engine.test.js'),
   // ─── Token 30K Threshold Tests ─────────────────────────────────────────
   join(__dir, 'nova-token-30k.test.js'),
+  // ─── Monte Carlo Enterprise Validation ─────────────────────────────────
+  join(__dir, 'monte-carlo-enterprise.test.js'),
 ].map(f => pathToFileURL(f).href);
 
 // Dynamic import runs the test file in the current process,
