@@ -159,6 +159,10 @@
     "cloud_colony": {
       "main": "src/organisms/cloud_colony/main.mo",
       "type": "motoko"
+    },
+    "research_mint": {
+      "main": "src/organisms/research_mint/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
