@@ -667,6 +667,13 @@
       totalBurned: 0,
     };
 
+    // ─── HTML Escape ──────────────────────────────────────────────────────────
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
     // ─── Fibonacci Hash ───────────────────────────────────────────────────────
     function fibonacciHash(input) {
       const encoder = new TextEncoder();
@@ -807,12 +814,12 @@
         tokenGrid.innerHTML = state.tokens.map(t => `
           <div class="token-card">
             <div class="token-id">TOKEN #${t.id} • PACKET #${t.packetId}</div>
-            <div class="token-title">${t.metadata.title}</div>
+            <div class="token-title">${esc(t.metadata.title)}</div>
             <div class="token-meta">
               <span class="token-value">${t.value.toLocaleString()} e8s</span>
-              <span class="token-domain">${t.metadata.domain}</span>
+              <span class="token-domain">${esc(t.metadata.domain)}</span>
             </div>
-            <span class="token-role ${t.role}">${t.role}</span>
+            <span class="token-role ${esc(t.role)}">${esc(t.role)}</span>
           </div>
         `).join('');
       }
@@ -822,8 +829,8 @@
       if (state.ledger.length > 0) {
         ledgerList.innerHTML = state.ledger.slice().reverse().map(e => `
           <div class="ledger-entry">
-            <span class="tx-kind ${e.kind.toLowerCase()}">${e.kind}</span>
-            <span class="tx-memo">${e.memo}</span>
+            <span class="tx-kind ${esc(e.kind.toLowerCase())}">${esc(e.kind)}</span>
+            <span class="tx-memo">${esc(e.memo)}</span>
             <span class="tx-amount">${e.amount.toLocaleString()}</span>
             <span class="tx-time">${new Date(e.timestamp).toLocaleTimeString()}</span>
           </div>
@@ -848,7 +855,22 @@
       const time = new Date().toLocaleTimeString();
       const line = document.createElement('div');
       line.className = 'console-line';
-      line.innerHTML = `<span class="timestamp">${time}</span><span class="event-type">${type}</span><span class="event-data">${message}</span>`;
+
+      const tsSpan = document.createElement('span');
+      tsSpan.className = 'timestamp';
+      tsSpan.textContent = time;
+
+      const typeSpan = document.createElement('span');
+      typeSpan.className = 'event-type';
+      typeSpan.textContent = type;
+
+      const dataSpan = document.createElement('span');
+      dataSpan.className = 'event-data';
+      dataSpan.textContent = message;
+
+      line.appendChild(tsSpan);
+      line.appendChild(typeSpan);
+      line.appendChild(dataSpan);
       output.appendChild(line);
       output.scrollTop = output.scrollHeight;
     }
