@@ -1,0 +1,23 @@
+{
+  "name": "@medina/agi-engines",
+  "version": "0.1.618",
+  "description": "Deep AGI Engines — Recursive self-improvement, meta-cognition, and emergent intelligence for CloudColony",
+  "main": "src/index.js",
+  "type": "module",
+  "keywords": ["agi", "meta-cognition", "recursive-improvement", "emergence", "cloudcolony"],
+  "author": "Casa de Medina — Architectos de Architectura Inteligente",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@medina/medina-heart": "file:../medina-heart",
+    "@medina/alpha-sdk": "file:../alpha-sdk",
+    "@medina/multi-engine-runtime": "file:../multi-engine-runtime"
+  },
+  "medina": {
+    "agi": true,
+    "deep": true,
+    "fibonacci": "0.1.618",
+    "charter": "BIC-2026",
+    "researchBacked": true
+  }
+}

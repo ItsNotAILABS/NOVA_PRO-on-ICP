@@ -1350,3 +1350,45 @@ export type {
   BridgeFamilyCycleResult,
   FiveFamilyCycleReport,
 } from './protocols/FiveFamilyEngine.js';
+
+
+// ═══ Research Mint Intelligence ═══
+export {
+  ResearchMintIntelligence,
+  researchMintIntelligence,
+  fibonacciHash as researchMintFibonacciHash,
+  chainHash,
+  calculateFidelity,
+  estimateTokenValue,
+  proofOfCreation,
+} from './intelligence/ResearchMintIntelligence.js';
+
+export type {
+  ResearchPacket,
+  ResearchToken,
+  ResearchDomain,
+  IPLevel,
+  TokenRole,
+  MintRequest,
+  MintResult,
+  ChainStatus,
+  LedgerEntry,
+  ProtocolEconomics,
+  ResearchMintEvent,
+  TokenMetadata,
+  PacketStatus,
+  LedgerKind,
+} from './intelligence/ResearchMintIntelligence.js';
+
+// ═══ Research Mint API ═══
+export {
+  ResearchMintAPI,
+  createResearchMintAPI,
+} from './sdk/ResearchMintAPI.js';
+
+export type {
+  ResearchMintAPIConfig,
+  ResearchMintError,
+  WireAttestation,
+  APIResponse,
+} from './sdk/ResearchMintAPI.js';

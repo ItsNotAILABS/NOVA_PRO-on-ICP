@@ -1,0 +1,11 @@
+
+AGI Engine Benchmarks
+────────────────────────────────────────────────────────────
+  MetaCognition.reason()             0.025ms/op  (100 iterations)
+  RecursiveSelfImprover.improve()    0.063ms/op  (20 iterations)
+  Emergence.tick() (10 agents)       0.044ms/op  (50 iterations)
+  Causal.intervene()                 0.008ms/op  (100 iterations)
+  Temporal.recordEvent()             0.005ms/op  (100 iterations)
+────────────────────────────────────────────────────────────
+Benchmark complete
+

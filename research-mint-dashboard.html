@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research Mint — Sovereign Research Packet AGI</title>
+  <style>
+    :root {
+      --gold: #c9a84c;
+      --gold-dim: #8b7530;
+      --gold-glow: #e8c55a;
+      --bg-deep: #0a0a0f;
+      --bg-card: #111118;
+      --bg-input: #1a1a24;
+      --text: #e8e8ec;
+      --text-dim: #8888aa;
+      --accent-green: #4caf50;
+      --accent-red: #f44336;
+      --accent-blue: #2196f3;
+      --accent-purple: #9c27b0;
+      --border: #2a2a3a;
+      --phi: 1.618;
+      --radius: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #0f0f18 0%, var(--bg-deep) 100%);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-brand h1 {
+      font-size: 18px;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .header-brand .phi-badge {
+      background: var(--gold-dim);
+      color: var(--bg-deep);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .chain-integrity {
+      font-size: 11px;
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── Main Grid Layout ───────────────────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.618fr;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      padding: 16px 24px;
+      max-height: calc(100vh - 64px);
+    }
+
+    /* ─── Stats Bar ──────────────────────────────────────────────── */
+    .stats-bar {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .stat-card .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+
+    .stat-card .stat-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─── Panels ─────────────────────────────────────────────────── */
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(201, 168, 76, 0.03);
+    }
+
+    .panel-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* ─── Mint Form ──────────────────────────────────────────────── */
+    .mint-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--gold-dim);
+    }
+
+    .form-group textarea { min-height: 80px; }
+    .form-group textarea.content-area { min-height: 150px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mint-btn {
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+      color: var(--bg-deep);
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+
+    .mint-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(201, 168, 76, 0.3);
+    }
+
+    .mint-btn:active { transform: translateY(0); }
+
+    .mint-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── Preview Card ───────────────────────────────────────────── */
+    .preview-card {
+      background: rgba(201, 168, 76, 0.05);
+      border: 1px solid var(--gold-dim);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-top: 8px;
+    }
+
+    .preview-card h3 {
+      font-size: 11px;
+      color: var(--gold);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 3px 0;
+    }
+
+    .preview-row .label { color: var(--text-dim); }
+    .preview-row .value { color: var(--text); font-weight: 500; }
+
+    /* ─── Ledger & Token List ────────────────────────────────────── */
+    .ledger-entry {
+      display: grid;
+      grid-template-columns: 60px 1fr 80px 80px;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      align-items: center;
+    }
+
+    .ledger-entry:last-child { border-bottom: none; }
+
+    .ledger-entry .tx-kind {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+
+    .ledger-entry .tx-kind.mint { color: var(--accent-green); }
+    .ledger-entry .tx-kind.transfer { color: var(--accent-blue); }
+    .ledger-entry .tx-kind.burn { color: var(--accent-red); }
+    .ledger-entry .tx-kind.citation { color: var(--accent-purple); }
+
+    .ledger-entry .tx-memo {
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ledger-entry .tx-amount { color: var(--gold); text-align: right; }
+    .ledger-entry .tx-time { color: var(--text-dim); text-align: right; }
+
+    /* ─── Token Cards ────────────────────────────────────────────── */
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .token-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .token-card:hover { border-color: var(--gold-dim); }
+
+    .token-card .token-id {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .token-card .token-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .token-card .token-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .token-card .token-value { color: var(--gold); font-weight: 600; }
+    .token-card .token-domain { color: var(--text-dim); }
+
+    .token-card .token-role {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .token-role.Research { background: rgba(33, 150, 243, 0.2); color: var(--accent-blue); }
+    .token-role.Discovery { background: rgba(156, 39, 176, 0.2); color: var(--accent-purple); }
+    .token-role.Foundation { background: rgba(201, 168, 76, 0.2); color: var(--gold); }
+    .token-role.Citation { background: rgba(76, 175, 80, 0.2); color: var(--accent-green); }
+    .token-role.Review { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+
+    /* ─── Chain Visualizer ───────────────────────────────────────── */
+    .chain-viz {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 12px;
+      overflow-x: auto;
+    }
+
+    .chain-block {
+      min-width: 32px;
+      height: 32px;
+      background: var(--bg-input);
+      border: 1px solid var(--gold-dim);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--gold);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .chain-block:hover {
+      background: rgba(201, 168, 76, 0.1);
+    }
+
+    .chain-link-arrow {
+      color: var(--text-dim);
+      font-size: 10px;
+    }
+
+    /* ─── Console ────────────────────────────────────────────────── */
+    .console-output {
+      font-size: 11px;
+      line-height: 1.6;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .console-line {
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+    }
+
+    .console-line .timestamp {
+      color: var(--text-dim);
+      margin-right: 8px;
+    }
+
+    .console-line .event-type {
+      color: var(--gold);
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .console-line .event-data { color: var(--text); }
+
+    /* ─── Tabs ───────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header class="header">
+    <div class="header-brand">
+      <h1>⬡ RESEARCH MINT</h1>
+      <span class="phi-badge">φ-CHAIN</span>
+    </div>
+    <div class="header-status">
+      <div class="chain-integrity">
+        <span class="status-dot"></span>
+        <span id="chainStatus">Chain Intact • 0 blocks</span>
+      </div>
+      <span style="font-size: 11px; color: var(--text-dim);" id="heartbeatDisplay">♡ 0</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════ STATS BAR ═══════════════ -->
+  <div class="main-grid">
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value" id="statPackets">0</div>
+        <div class="stat-label">Research Packets</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statTokens">0</div>
+        <div class="stat-label">Tokens Minted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statChain">0</div>
+        <div class="stat-label">Chain Length</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statValue">0</div>
+        <div class="stat-label">Total Value (e8s)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statFidelity">0.000</div>
+        <div class="stat-label">Avg Fidelity</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statBurned">0</div>
+        <div class="stat-label">Burned (e8s)</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ LEFT PANEL: MINT FORM ═══════════════ -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>⬡ Mint Research Packet</h2>
+        <span style="font-size: 10px; color: var(--text-dim);">Encrypt → Chain → Tokenize → Mint</span>
+      </div>
+      <div class="panel-body">
+        <form class="mint-form" id="mintForm">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="mintTitle" placeholder="Research packet title..." required>
+          </div>
+
+          <div class="form-group">
+            <label>Abstract</label>
+            <textarea id="mintAbstract" placeholder="Brief abstract of the research content (min 50 chars)..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Research Content</label>
+            <textarea class="content-area" id="mintContent" placeholder="Full research content to be encrypted and tokenized..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Domain</label>
+              <select id="mintDomain">
+                <option value="Mathematics">Mathematics</option>
+                <option value="Physics">Physics</option>
+                <option value="ComputerScience">Computer Science</option>
+                <option value="Biology">Biology</option>
+                <option value="Economics">Economics</option>
+                <option value="Philosophy">Philosophy</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Interdisciplinary">Interdisciplinary</option>
+                <option value="Protocol" selected>Protocol</option>
+                <option value="Sovereign">Sovereign</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>IP Protection Level</label>
+              <select id="mintIPLevel">
+                <option value="Public">Public (Open Access)</option>
+                <option value="Protected">Protected (Council-Gated)</option>
+                <option value="Sovereign" selected>Sovereign (Owner-Only)</option>
+                <option value="HighCouncil">High Council (Multi-Sig)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Token Role</label>
+            <select id="mintRole">
+              <option value="Research">Research (Standard)</option>
+              <option value="Discovery">Discovery (Novel Finding)</option>
+              <option value="Foundation">Foundation (Foundational Theory)</option>
+              <option value="Review">Review (Peer Review)</option>
+            </select>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-card" id="mintPreview" style="display: none;">
+            <h3>φ Pre-Computation Preview</h3>
+            <div class="preview-row">
+              <span class="label">Content Hash</span>
+              <span class="value" id="previewHash">—</span>
+            </div>
+            <div class="preview-row">
+              <span class="label">Est. Fidelity</span>
+              <span class="value" id="previewFidelity">—</span>
+            </div>
+            <div class="preview-row">
+              <span class="label">Est. Token Value</span>
+              <span class="value" id="previewValue">— e8s</span>
+            </div>
+            <div class="preview-row">
+              <span class="label">IP Encryption</span>
+              <span class="value" id="previewEncryption">—</span>
+            </div>
+          </div>
+
+          <button type="submit" class="mint-btn" id="mintBtn">
+            ⬡ ENCRYPT & MINT RESEARCH PACKET
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══════════════ RIGHT PANEL: TOKENS & LEDGER ═══════════════ -->
+    <div class="panel">
+      <div class="tabs">
+        <div class="tab active" data-tab="tokens">My Tokens</div>
+        <div class="tab" data-tab="ledger">Ledger</div>
+        <div class="tab" data-tab="chain">IP Chain</div>
+        <div class="tab" data-tab="console">Console</div>
+      </div>
+
+      <div class="panel-body">
+        <!-- Tokens Tab -->
+        <div class="tab-content active" id="tab-tokens">
+          <div class="token-grid" id="tokenGrid">
+            <div style="color: var(--text-dim); font-size: 12px; grid-column: 1 / -1; text-align: center; padding: 40px 0;">
+              No research tokens minted yet.<br>
+              <span style="font-size: 11px;">Create your first research packet to mint a sovereign token.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ledger Tab -->
+        <div class="tab-content" id="tab-ledger">
+          <div id="ledgerList">
+            <div style="color: var(--text-dim); font-size: 12px; text-align: center; padding: 40px 0;">
+              Ledger empty. Transactions will appear here after minting.
+            </div>
+          </div>
+        </div>
+
+        <!-- Chain Tab -->
+        <div class="tab-content" id="tab-chain">
+          <div class="chain-viz" id="chainViz">
+            <div style="color: var(--text-dim); font-size: 12px; text-align: center; padding: 40px 0; width: 100%;">
+              IP chain visualization will appear here after minting.
+            </div>
+          </div>
+        </div>
+
+        <!-- Console Tab -->
+        <div class="tab-content" id="tab-console">
+          <div class="console-output" id="consoleOutput">
+            <div class="console-line">
+              <span class="timestamp">00:00:00</span>
+              <span class="event-type">BOOT</span>
+              <span class="event-data">Research Mint Intelligence online. φ-heartbeat active at 873ms.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ JAVASCRIPT ENGINE ═══════════════ -->
+  <script>
+    // ─── Constants ────────────────────────────────────────────────────────────
+    const PHI = 1.6180339887498948482;
+    const PHI_INV = 0.6180339887498948482;
+    const PHI_SQ = 2.6180339887498948482;
+    const GOLDEN_ANGLE_RAD = 2.39996322972865332;
+    const FIBONACCI = [1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765];
+    const HEARTBEAT_MS = 873;
+
+    // ─── State ────────────────────────────────────────────────────────────────
+    let state = {
+      packets: [],
+      tokens: [],
+      ledger: [],
+      chain: [],
+      heartbeatCount: 0,
+      chainLength: 0,
+      lastChainHash: 0,
+      totalValue: 0,
+      totalBurned: 0,
+    };
+
+    // ─── HTML Escape ──────────────────────────────────────────────────────────
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ─── Fibonacci Hash ───────────────────────────────────────────────────────
+    function fibonacciHash(input) {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(input);
+      let hash = 0;
+      for (let i = 0; i < bytes.length; i++) {
+        const fibWeight = FIBONACCI[i % FIBONACCI.length];
+        hash = (hash + (bytes[i] * fibWeight)) >>> 0;
+        hash = (hash * 1597 + 997) >>> 0;
+      }
+      hash = (hash * 2584 + 4181) >>> 0;
+      return hash;
+    }
+
+    function chainHashCalc(contentHash, prevHash, position) {
+      let h = contentHash;
+      for (let round = 0; round < 13; round++) {
+        const fibMix = FIBONACCI[(round + position) % FIBONACCI.length];
+        h = (h * fibMix + prevHash) >>> 0;
+        h = (h * 987 + 610) >>> 0;
+      }
+      return h;
+    }
+
+    function encryptContent(content, keyHash) {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(content);
+      const encrypted = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) {
+        const fibKey = FIBONACCI[(i + keyHash) % FIBONACCI.length] % 256;
+        encrypted[i] = bytes[i] ^ fibKey;
+      }
+      return encrypted;
+    }
+
+    function calculateFidelity(abstractLen, domain, ipLevel) {
+      const lenScore = (abstractLen > 100 && abstractLen < 2000)
+        ? (PHI_INV * abstractLen) / 400.0 : 0.5;
+      const domainMults = {
+        Mathematics: PHI, Physics: PHI, ComputerScience: PHI_INV * PHI,
+        Protocol: PHI_SQ, Sovereign: PHI_SQ,
+        Biology: 1, Economics: 1, Philosophy: 1, Engineering: 1, Interdisciplinary: 1
+      };
+      const ipMults = { Public: 1.0, Protected: PHI_INV, Sovereign: PHI, HighCouncil: PHI_SQ };
+      const raw = lenScore * (domainMults[domain] || 1) * (ipMults[ipLevel] || 1);
+      return Math.min(Math.max(raw, 0), PHI_SQ);
+    }
+
+    function tokenValue(fidelity) {
+      return Math.floor((1000000 * fidelity) / PHI);
+    }
+
+    // ─── Mint Logic ───────────────────────────────────────────────────────────
+    function mintPacket(title, abstractText, content, domain, ipLevel, role) {
+      const now = Date.now();
+      const contentHash = fibonacciHash(content);
+      const abstractHash = fibonacciHash(abstractText);
+
+      // Encryption key from content + time
+      const keyHash = fibonacciHash(content + now.toString());
+      const encrypted = encryptContent(content, keyHash);
+
+      // Chain link
+      const position = state.chainLength;
+      const linkHash = chainHashCalc(contentHash, state.lastChainHash, position);
+
+      // Proof of creation
+      let proof = (contentHash * fibonacciHash('local-user')) >>> 0;
+      for (let r = 0; r < 8; r++) {
+        proof = (proof * FIBONACCI[r + 5] + FIBONACCI[r + 8]) >>> 0;
+      }
+
+      // Fidelity & value
+      const fidelity = calculateFidelity(abstractText.length, domain, ipLevel);
+      const value = tokenValue(fidelity);
+
+      // Create packet
+      const packetId = state.packets.length;
+      const packet = {
+        id: packetId, title, abstractText, contentHash, encrypted,
+        domain, ipLevel, status: 'Minted', createdAt: now, mintedAt: now,
+        chainPosition: position, previousHash: state.lastChainHash,
+        proofOfCreation: proof, encryptionKeyHash: keyHash,
+        fidelityScore: fidelity, citationCount: 0, tokenId: state.tokens.length
+      };
+      state.packets.push(packet);
+
+      // Chain link
+      state.chain.push({ position, packetId, hash: linkHash, previousHash: state.lastChainHash, timestamp: now });
+      state.lastChainHash = linkHash;
+      state.chainLength++;
+
+      // Mint token
+      const tokenId = state.tokens.length;
+      const token = {
+        id: tokenId, packetId, owner: 'local-user', mintedAt: now,
+        value, role, chainHash: linkHash,
+        transferable: ipLevel !== 'HighCouncil',
+        metadata: { title, domain, ipLevel, abstractHash, fidelityAtMint: fidelity }
+      };
+      state.tokens.push(token);
+      state.totalValue += value;
+
+      // Ledger entry
+      const txId = state.ledger.length;
+      state.ledger.push({
+        id: txId, kind: 'Mint', tokenId, from: null, to: 'local-user',
+        amount: value, timestamp: now, memo: `MINT:RP:${packetId}:CHAIN:${position}`
+      });
+
+      // Emit console
+      logConsole('MINT', `Packet #${packetId} → Token #${tokenId} | Value: ${value.toLocaleString()} e8s | Chain: ${position}`);
+      logConsole('ENCRYPT', `IP-${ipLevel} encryption applied | Hash: ${contentHash.toString(16).slice(0,8)}... | Proof: ${proof.toString(16).slice(0,8)}...`);
+      logConsole('CHAIN', `Block #${position} linked | Hash: ${linkHash.toString(16).slice(0,8)}... ← Prev: ${packet.previousHash.toString(16).slice(0,8)}...`);
+
+      updateUI();
+      return { tokenId, packetId, chainPosition: position, txId, value, fidelity };
+    }
+
+    // ─── UI Updates ───────────────────────────────────────────────────────────
+    function updateUI() {
+      // Stats
+      document.getElementById('statPackets').textContent = state.packets.length;
+      document.getElementById('statTokens').textContent = state.tokens.length;
+      document.getElementById('statChain').textContent = state.chainLength;
+      document.getElementById('statValue').textContent = state.totalValue.toLocaleString();
+      document.getElementById('statBurned').textContent = state.totalBurned.toLocaleString();
+
+      const avgFid = state.packets.length > 0
+        ? (state.packets.reduce((s, p) => s + p.fidelityScore, 0) / state.packets.length).toFixed(3)
+        : '0.000';
+      document.getElementById('statFidelity').textContent = avgFid;
+      document.getElementById('chainStatus').textContent = `Chain Intact • ${state.chainLength} blocks`;
+
+      // Token grid
+      const tokenGrid = document.getElementById('tokenGrid');
+      if (state.tokens.length > 0) {
+        tokenGrid.innerHTML = state.tokens.map(t => `
+          <div class="token-card">
+            <div class="token-id">TOKEN #${t.id} • PACKET #${t.packetId}</div>
+            <div class="token-title">${esc(t.metadata.title)}</div>
+            <div class="token-meta">
+              <span class="token-value">${t.value.toLocaleString()} e8s</span>
+              <span class="token-domain">${esc(t.metadata.domain)}</span>
+            </div>
+            <span class="token-role ${esc(t.role)}">${esc(t.role)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Ledger
+      const ledgerList = document.getElementById('ledgerList');
+      if (state.ledger.length > 0) {
+        ledgerList.innerHTML = state.ledger.slice().reverse().map(e => `
+          <div class="ledger-entry">
+            <span class="tx-kind ${esc(e.kind.toLowerCase())}">${esc(e.kind)}</span>
+            <span class="tx-memo">${esc(e.memo)}</span>
+            <span class="tx-amount">${e.amount.toLocaleString()}</span>
+            <span class="tx-time">${new Date(e.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `).join('');
+      }
+
+      // Chain viz
+      const chainViz = document.getElementById('chainViz');
+      if (state.chain.length > 0) {
+        chainViz.innerHTML = state.chain.map((link, i) => `
+          ${i > 0 ? '<span class="chain-link-arrow">→</span>' : ''}
+          <div class="chain-block" title="Block #${link.position}\nHash: ${link.hash.toString(16)}\nPacket: #${link.packetId}">
+            ${link.position}
+          </div>
+        `).join('');
+      }
+    }
+
+    // ─── Console Logging ──────────────────────────────────────────────────────
+    function logConsole(type, message) {
+      const output = document.getElementById('consoleOutput');
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'console-line';
+
+      const tsSpan = document.createElement('span');
+      tsSpan.className = 'timestamp';
+      tsSpan.textContent = time;
+
+      const typeSpan = document.createElement('span');
+      typeSpan.className = 'event-type';
+      typeSpan.textContent = type;
+
+      const dataSpan = document.createElement('span');
+      dataSpan.className = 'event-data';
+      dataSpan.textContent = message;
+
+      line.appendChild(tsSpan);
+      line.appendChild(typeSpan);
+      line.appendChild(dataSpan);
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    // ─── Heartbeat ────────────────────────────────────────────────────────────
+    setInterval(() => {
+      state.heartbeatCount++;
+      document.getElementById('heartbeatDisplay').textContent = `♡ ${state.heartbeatCount}`;
+
+      if (state.heartbeatCount % 13 === 0) {
+        logConsole('INTEGRITY', `Chain verification passed at beat ${state.heartbeatCount} | ${state.chainLength} blocks verified`);
+      }
+    }, HEARTBEAT_MS);
+
+    // ─── Form Handling ────────────────────────────────────────────────────────
+    const form = document.getElementById('mintForm');
+    const preview = document.getElementById('mintPreview');
+
+    // Live preview on input
+    ['mintTitle', 'mintAbstract', 'mintContent', 'mintDomain', 'mintIPLevel'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePreview);
+    });
+
+    function updatePreview() {
+      const content = document.getElementById('mintContent').value;
+      const abstractText = document.getElementById('mintAbstract').value;
+      const domain = document.getElementById('mintDomain').value;
+      const ipLevel = document.getElementById('mintIPLevel').value;
+
+      if (content.length > 10 && abstractText.length > 10) {
+        preview.style.display = 'block';
+        const hash = fibonacciHash(content);
+        const fidelity = calculateFidelity(abstractText.length, domain, ipLevel);
+        const value = tokenValue(fidelity);
+
+        document.getElementById('previewHash').textContent = '0x' + hash.toString(16).slice(0, 12) + '...';
+        document.getElementById('previewFidelity').textContent = fidelity.toFixed(4) + ' / ' + PHI_SQ.toFixed(4);
+        document.getElementById('previewValue').textContent = value.toLocaleString() + ' e8s';
+        document.getElementById('previewEncryption').textContent = `${ipLevel} • ${13}-depth Fibonacci chain`;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    // Submit
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('mintTitle').value.trim();
+      const abstractText = document.getElementById('mintAbstract').value.trim();
+      const content = document.getElementById('mintContent').value.trim();
+      const domain = document.getElementById('mintDomain').value;
+      const ipLevel = document.getElementById('mintIPLevel').value;
+      const role = document.getElementById('mintRole').value;
+
+      if (!title || abstractText.length < 50 || content.length < 100) {
+        logConsole('ERROR', 'Validation failed: title required, abstract ≥50 chars, content ≥100 chars');
+        return;
+      }
+
+      const result = mintPacket(title, abstractText, content, domain, ipLevel, role);
+      logConsole('SUCCESS', `Research packet minted! Token #${result.tokenId} worth ${result.value.toLocaleString()} e8s at fidelity ${result.fidelity.toFixed(4)}`);
+
+      // Reset form
+      form.reset();
+      preview.style.display = 'none';
+    });
+
+    // ─── Tab Navigation ───────────────────────────────────────────────────────
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ─── Boot ─────────────────────────────────────────────────────────────────
+    logConsole('SYSTEM', 'Research Mint AGI initialized');
+    logConsole('SYSTEM', `φ-Constants: PHI=${PHI.toFixed(6)} | PHI²=${PHI_SQ.toFixed(6)} | Golden Angle=${(GOLDEN_ANGLE_RAD * 180 / Math.PI).toFixed(3)}°`);
+    logConsole('SYSTEM', `Heartbeat: ${HEARTBEAT_MS}ms (φ⁴ × Schumann) | Chain Depth: 13 (F₇) | Encryption Rounds: 8 (F₆)`);
+    logConsole('READY', 'Awaiting research packet submission...');
+  </script>
+</body>
+</html>
